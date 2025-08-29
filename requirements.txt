@@ -2,3 +2,4 @@ streamlit
 pubchempy
 numpy
 rich
+molmass
