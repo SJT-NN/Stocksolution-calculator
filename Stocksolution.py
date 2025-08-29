@@ -6,15 +6,6 @@ from collections import defaultdict
 import pandas as pd
 
 # --- Helpers ---
-def molar_mass_multi(formulas_str):
-    total_mass = 0.0
-    for f_str in formulas_str.split(','):
-        f_str = f_str.strip()
-        if f_str:
-            f = Formula(f_str)
-            total_mass += f.mass
-    return total_mass
-
 def mass_required_molar(M, conc_mol_L, vol_L, purity):
     pure_mass = M * conc_mol_L * vol_L
     return pure_mass / purity
@@ -45,11 +36,9 @@ def parse_float(x, default=0.0):
 st.set_page_config(page_title="Multi‑Solute Solution Prep", page_icon="🧪")
 st.title("🧪 Multi‑Component Solution Preparation with Element‑Wise Uncertainty")
 
-# Choose volume mode or mass/density mode
 use_mass_density = st.checkbox("Enter total solution mass & density instead of volume", value=False)
 
 if not use_mass_density:
-    # Solution volume + unit
     vol_col, vol_unit_col = st.columns([2, 1])
     with vol_col:
         vol_value = parse_float(st.text_input("Solution volume", "1.0"))
@@ -57,7 +46,6 @@ if not use_mass_density:
         vol_unit = st.selectbox("Unit", ["L", "mL"], index=0)
     vol_L = vol_value / 1000.0 if vol_unit == "mL" else vol_value
 
-    # Volume uncertainty + unit
     uvol_col, uvol_unit_col = st.columns([2, 1])
     with uvol_col:
         u_vol_value = parse_float(st.text_input("Volume uncertainty", "0.001"))
@@ -65,7 +53,6 @@ if not use_mass_density:
         u_vol_unit = st.selectbox("Uncertainty Unit", ["L", "mL"], index=0)
     u_vol_L = u_vol_value / 1000.0 if u_vol_unit == "mL" else u_vol_value
 else:
-    # Mass + unit
     mass_col, mass_unit_col = st.columns([2, 1])
     with mass_col:
         sol_mass_val = parse_float(st.text_input("Total solution mass", "100.0"))
@@ -73,7 +60,6 @@ else:
         mass_unit = st.selectbox("Mass unit", ["g", "kg"], index=0)
     sol_mass_g = sol_mass_val * (1000.0 if mass_unit == "kg" else 1.0)
 
-    # Scale uncertainty + unit
     umass_col, umass_unit_col = st.columns([2, 1])
     with umass_col:
         u_mass_sol_val = parse_float(st.text_input("Scale uncertainty for solution mass", "0.01"))
@@ -83,17 +69,15 @@ else:
 
     sol_density_gmL = parse_float(st.text_input("Solution density [g/mL]", "1.00"))
 
-    # Convert to L and its uncertainty
     vol_L = sol_mass_g / (sol_density_gmL * 1000.0)
     u_vol_L = u_mass_sol / (sol_density_gmL * 1000.0)
 
-# Number of solutes
 n_solutes = st.number_input("Number of different solutes", min_value=1, value=2, step=1)
 
 results = []
 element_mgL = defaultdict(float)
 
-# Data entry loop
+# --- Data entry ---
 for i in range(int(n_solutes)):
     st.markdown(f"### Solute {i+1}")
     formula = st.text_input(f"Formula {i+1}", "NaCl", key=f"f_{i}")
@@ -120,7 +104,6 @@ for i in range(int(n_solutes)):
             "u_c": u_c
         })
 
-        # Element breakdown
         try:
             atoms = Formula(formula).atoms
             for sym, count in atoms.items():
@@ -142,9 +125,10 @@ if results:
         st.markdown("### Element concentrations in solution (mg/L)")
         st.write("Each value sums contributions from all solutes containing that element.")
 
-        # Convert dict to DataFrame for table
         df_elements = pd.DataFrame(
             sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
             columns=["Element", "Concentration (mg/L)"]
         )
-        st.table(df_elements)
+        # Format numbers
+        df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
+        st.dataframe(df_elements, use_container_width=True)
