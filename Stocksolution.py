@@ -29,23 +29,31 @@ def conc_uncertainty_component(M, m_weighed, u_mass, vol_L, u_vol_L, purity, u_p
     dc_dp = m_weighed / (M * vol_L)
     return math.sqrt((dc_dm * u_mass)**2 + (dc_dV * u_vol_L)**2 + (dc_dp * u_purity)**2)
 
-def solve_masses(element_targets, molecules):
-    elems = list(element_targets.keys())
-    A = np.zeros((len(elems), len(molecules)))
+def solve_masses(element_targets_mgL, molecules):
+    """
+    element_targets_mgL: dict {element_symbol: target mg/L}
+    molecules: list of tuples [(formula: str, purity: float 0..1), ...]
+    Returns: np.ndarray of grams of each as-received solute per liter
+    """
+    elems = list(element_targets_mgL.keys())
+    n_e, n_m = len(elems), len(molecules)
+    A = np.zeros((n_e, n_m))
+
     for j, (formula, purity) in enumerate(molecules):
         try:
-            atom_dict = Formula(formula).atoms
+            f = Formula(formula)
+            M_formula = f.mass
+            atoms = f.atoms
             for i, el in enumerate(elems):
-                if el in atom_dict:
-                    A[i, j] = atom_dict[el] * Formula(el).mass
+                count = atoms.get(el, 0)
+                if count:
+                    A[i, j] = purity * (count * Formula(el).mass) / M_formula
         except Exception:
             pass
-    b = np.array([element_targets[e] / 1000.0 for e in elems])  # g/L
-    for j, (_, purity) in enumerate(molecules):
-        A[:, j] *= purity
-    mols, *_ = np.linalg.lstsq(A, b, rcond=None)
-    masses_gL = mols * [Formula(f).mass for f, _ in molecules]
-    return masses_gL
+
+    b = np.array([element_targets_mgL[e] / 1000.0 for e in elems])  # g/L
+    g_per_L, *_ = np.linalg.lstsq(A, b, rcond=None)
+    return g_per_L
 
 # ---------- UI ----------
 st.set_page_config(page_title="Multi‑Solute Solution Prep", page_icon="🧪")
@@ -142,8 +150,10 @@ if mode == "Reverse: By Element Concentration":
         with col1:
             formula = st.text_input(f"Solute {i+1} formula", key=f"sol_formula_{i}")
         with col2:
-            purity_pct = parse_float(st.text_input(f"Purity [%] for {formula or f'Solute {i+1}'}",
-                                                   "100.0", key=f"pur_{i}"))
+            purity_pct = parse_float(
+                st.text_input(f"Purity [%] for {formula or f'Solute {i+1}'}",
+                              "100.0", key=f"pur_{i}")
+            )
         if formula:
             molecules.append((formula, purity_pct/100.0))
 
@@ -162,7 +172,7 @@ if mode == "Reverse: By Element Concentration":
             c1, c2 = st.columns([2, 1])
             with c1:
                 val = parse_float(
-                    st.text_input(f"{el} concentration", "0.0", key=f"target_val_{el}")
+                    st.text_input(f"{el} concentration", "0.0", key= f"target_val_{el}")
                 )
             with c2:
                 unit = st.selectbox(
@@ -177,11 +187,21 @@ if mode == "Reverse: By Element Concentration":
 
             element_targets[el] = val
 
-        # Step 4 — Solve for solute amounts
+        # Step — Solve for solute amounts
         if st.button("Calculate required solute masses"):
-            masses_gL = solve_masses(element_targets, molecules)
+            g_per_L = solve_masses(element_targets, molecules)
+
+            # Warn if any required masses are negative
+            if np.any(g_per_L < -1e-9):
+                st.warning(
+                    "Some required masses are negative. "
+                    "The specified element targets may be infeasible with the provided solutes/purities."
+                )
 
             st.subheader("Required solute masses")
-            for (formula, _), mass in zip(molecules, masses_gL):
-                total_mass = mass * vol_L
-                st.write(f"- **{formula}**: {mass:.5f} g/L → {total_mass:.5f} g total for {vol_L} L batch")
+            for (formula, _), gL in zip(molecules, g_per_L):
+                total_mass = gL * vol_L
+                st.write(
+                    f"- **{formula}**: {gL:.5f} g/L → "
+                    f"{total_mass:.5f} g total for {vol_L:.5f} L batch"
+                )
