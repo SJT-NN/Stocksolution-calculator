@@ -166,4 +166,5 @@ if mode == "By Element Concentration":
     element_targets = {}
     for i in range(int(n_elems)):
         ec1, ec2 = st.columns([2, 2])
-        with ec
+        with ec1:
+            st.text_input("Element name")
