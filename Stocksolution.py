@@ -29,13 +29,7 @@ def conc_uncertainty_component(M, m_weighed, u_mass, vol_L, u_vol_L, purity, u_p
     dc_dp = m_weighed / (M * vol_L)
     return math.sqrt((dc_dm * u_mass)**2 + (dc_dV * u_vol_L)**2 + (dc_dp * u_purity)**2)
 
-# Solve reverse problem: element mg/L → molecule masses
 def solve_masses(element_targets, molecules):
-    """
-    element_targets: dict {element_symbol: target mg/L}
-    molecules: list of (formula, purity_frac)
-    Returns: list of masses (g/L) of each molecule to satisfy targets (least squares)
-    """
     elems = list(element_targets.keys())
     A = np.zeros((len(elems), len(molecules)))
     for j, (formula, purity) in enumerate(molecules):
@@ -46,9 +40,7 @@ def solve_masses(element_targets, molecules):
                     A[i, j] = atom_dict[el] * Formula(el).mass
         except Exception:
             pass
-    # Convert targets to g/L
-    b = np.array([element_targets[e] / 1000.0 for e in elems])
-    # Adjust by purity
+    b = np.array([element_targets[e] / 1000.0 for e in elems])  # g/L
     for j, (_, purity) in enumerate(molecules):
         A[:, j] *= purity
     mols, *_ = np.linalg.lstsq(A, b, rcond=None)
@@ -61,7 +53,7 @@ st.title("🧪 Multi‑Component Solution Preparation")
 
 mode = st.radio("Select mode:", ["Forward: By Molecule Concentration", "Reverse: By Element Concentration"])
 
-# Volume / Mass selection
+# Volume / Mass input
 use_mass_density = st.checkbox("Enter total solution mass & density instead of volume", value=False)
 
 if not use_mass_density:
@@ -86,7 +78,7 @@ else:
     vol_L = sol_mass_g / (sol_density_gmL * 1000.0)
     u_vol_L = u_mass_sol / (sol_density_gmL * 1000.0)
 
-# ---------- Mode 1: Forward ----------
+# ---------- Forward Mode ----------
 if mode == "Forward: By Molecule Concentration":
     n_solutes = st.number_input("Number of solutes", min_value=1, value=2, step=1)
     results = []
@@ -141,9 +133,8 @@ if mode == "Forward: By Molecule Concentration":
             st.markdown("### Element concentrations in solution (mg/L)")
             st.dataframe(df_elements, use_container_width=True)
 
-# ---------- Mode 2: Reverse ----------
+# ---------- Reverse Mode ----------
 if mode == "Reverse: By Element Concentration":
-    # Step 1: Get solutes
     n_solutes = st.number_input("Number of available solutes", min_value=1, value=2, step=1)
     molecules = []
     for i in range(int(n_solutes)):
@@ -151,12 +142,12 @@ if mode == "Reverse: By Element Concentration":
         with col1:
             formula = st.text_input(f"Solute {i+1} formula", key=f"sol_formula_{i}")
         with col2:
-            purity_pct = parse_float(st.text_input(f"Purity [%] for {formula or f'Solute {i+1}'}", "100.0", key=f"pur_{i}"))
+            purity_pct = parse_float(st.text_input(f"Purity [%] for {formula or f'Solute {i+1}'}",
+                                                   "100.0", key=f"pur_{i}"))
         if formula:
             molecules.append((formula, purity_pct/100.0))
 
     if molecules:
-        # Step 2: Unique element list
         unique_elements = set()
         for formula, _ in molecules:
             try:
@@ -165,32 +156,10 @@ if mode == "Reverse: By Element Concentration":
                 pass
         unique_elements = sorted(unique_elements)
 
-        # Step 3: Desired concentration for each element
         st.subheader("Target element concentrations")
         element_targets = {}
         for el in unique_elements:
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                conc_value = parse_float(
-                    st.text_input(f"{el} target concentration", "0.0", key=f"el_target_val_{el}")
-                )
-            with col2:
-                conc_unit = st.selectbox(
-                    "Unit",
-                    ["mg/L", "mol/L"],
-                    key=f"el_target_unit_{el}"
-                )
-
-            # Convert mol/L → mg/L if needed
-            if conc_unit == "mol/L":
-                conc_value = molL_to_mgL(conc_value, Formula(el).mass)
-
-            element_targets[el] = conc_value  # always stored as mg/L
-
-        # Step 4: Compute masses
-        if st.button("Calculate required solute masses"):
-            masses_gL = solve_masses(element_targets, molecules)
-            st.subheader("Required solute masses")
-            for (formula, _), mass in zip(molecules, masses_gL):
-                total_mass = mass * vol_L  # scale to actual total solution volume
-                st.write(f"- **{formula}**: {mass:.5f} g/L → weigh {total_mass:.5f} g for your batch")
+            c1, c2 = st.columns([2, 1])
+            with c1:
+                val = parse_float(st.text_input(f"{el} concentration", "0.0", key=f"target_val_{el}"))
+            with c
