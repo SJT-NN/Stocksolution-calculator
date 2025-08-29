@@ -3,21 +3,27 @@ import math
 import streamlit as st
 from molmass import Formula
 
-# --- Conversions ---
+# --- Helpers ---
+def molar_mass_multi(formulas_str):
+    total_mass = 0.0
+    for f_str in formulas_str.split(','):
+        f_str = f_str.strip()
+        if f_str:
+            f = Formula(f_str)
+            total_mass += f.mass
+    return total_mass
+
+def mass_required_molar(M, conc_mol_L, vol_L, purity):
+    pure_mass = M * conc_mol_L * vol_L
+    return pure_mass / purity
+
 def mgL_to_molL(conc_mg_L, M):
     return conc_mg_L / 1000.0 / M
 
 def molL_to_mgL(conc_mol_L, M):
     return conc_mol_L * M * 1000.0
 
-# --- Mass needed given purity ---
-def mass_required_molar(M, conc_mol_L, vol_L, purity):
-    pure_mass = M * conc_mol_L * vol_L
-    return pure_mass / purity
-
-# --- Uncertainty for one component ---
 def conc_uncertainty_component(M, m_weighed, u_mass, vol_L, u_vol_L, purity, u_purity):
-    # c = (m * p) / (M * V)
     dc_dm = purity / (M * vol_L)
     dc_dV = -(m_weighed * purity) / (M * vol_L**2)
     dc_dp = m_weighed / (M * vol_L)
@@ -37,27 +43,47 @@ def parse_float(x, default=0.0):
 st.set_page_config(page_title="Multi‑Solute Solution Prep", page_icon="🧪")
 st.title("🧪 Multi‑Component Solution Preparation with Element‑Wise Uncertainty")
 
+# Choose volume mode or mass/density mode
 use_mass_density = st.checkbox("Enter total solution mass & density instead of volume", value=False)
 
 if not use_mass_density:
-    vol_val = parse_float(st.text_input("Solution volume", "1.0"))
-    vol_unit = st.selectbox("Volume unit", ["L", "mL"], index=0)
-    vol_L = vol_val / 1000.0 if vol_unit == "mL" else vol_val
-    u_vol_L = parse_float(st.text_input("Volume uncertainty", "0.001"))
-    if vol_unit == "mL":
-        u_vol_L /= 1000.0
+    # Solution volume and unit on the same line
+    vol_col, vol_unit_col = st.columns([2, 1])
+    with vol_col:
+        vol_value = parse_float(st.text_input("Solution volume", "1.0"))
+    with vol_unit_col:
+        vol_unit = st.selectbox("Unit", ["L", "mL"], index=0)
+    vol_L = vol_value / 1000.0 if vol_unit == "mL" else vol_value
+
+    # Volume uncertainty and unit on the same line
+    uvol_col, uvol_unit_col = st.columns([2, 1])
+    with uvol_col:
+        u_vol_value = parse_float(st.text_input("Volume uncertainty", "0.001"))
+    with uvol_unit_col:
+        u_vol_unit = st.selectbox("Uncertainty Unit", ["L", "mL"], index=0)
+    u_vol_L = u_vol_value / 1000.0 if u_vol_unit == "mL" else u_vol_value
 else:
-    sol_mass_val = parse_float(st.text_input("Total solution mass", "100.0"))
-    mass_unit = st.selectbox("Mass unit", ["g", "kg"], index=0)
-    if mass_unit == "kg":
-        sol_mass_val *= 1000.0
-    u_mass_sol_val = parse_float(st.text_input("Scale uncertainty for solution mass", "0.01"))
-    u_mass_unit = st.selectbox("Uncertainty mass unit", ["g", "kg"], index=0)
-    if u_mass_unit == "kg":
-        u_mass_sol_val *= 1000.0
+    # Mass and unit on same line
+    mass_col, mass_unit_col = st.columns([2, 1])
+    with mass_col:
+        sol_mass_val = parse_float(st.text_input("Total solution mass", "100.0"))
+    with mass_unit_col:
+        mass_unit = st.selectbox("Mass unit", ["g", "kg"], index=0)
+    sol_mass_g = sol_mass_val * (1000.0 if mass_unit == "kg" else 1.0)
+
+    # Scale uncertainty for total mass + unit on same line
+    umass_col, umass_unit_col = st.columns([2, 1])
+    with umass_col:
+        u_mass_sol_val = parse_float(st.text_input("Scale uncertainty for solution mass", "0.01"))
+    with umass_unit_col:
+        u_mass_unit = st.selectbox("Uncertainty mass unit", ["g", "kg"], index=0)
+    u_mass_sol = u_mass_sol_val * (1000.0 if u_mass_unit == "kg" else 1.0)
+
     sol_density_gmL = parse_float(st.text_input("Solution density [g/mL]", "1.00"))
-    vol_L = sol_mass_val / (sol_density_gmL * 1000.0)
-    u_vol_L = u_mass_sol_val / (sol_density_gmL * 1000.0)
+
+    # Convert to volume (L) and its uncertainty
+    vol_L = sol_mass_g / (sol_density_gmL * 1000.0)
+    u_vol_L = u_mass_sol / (sol_density_gmL * 1000.0)
 
 # Number of solutes
 n_solutes = st.number_input("Number of different solutes", min_value=1, value=2, step=1)
@@ -70,7 +96,7 @@ for i in range(int(n_solutes)):
     st.markdown(f"### Solute {i+1}")
     formula = st.text_input(f"Formula {i+1}", "NaCl", key=f"f_{i}")
     conc_val = parse_float(st.text_input(f"Target conc {i+1}", "0.1"), 0.0)
-    conc_unit = st.selectbox(f"Concentration unit {i+1}", ["mol/L", "mg/L"], key=f"u_{i}")
+    conc_unit = st.selectbox(f"Concentration unit {i+1}", ["mol/L", "mg/L"], key=f"cu_{i}")
     purity_pct = parse_float(st.text_input(f"Purity [%] {i+1}", "99.5"))
     u_purity_pct = parse_float(st.text_input(f"Purity uncertainty [%] {i+1}", "0.05"))
     u_mass_g = parse_float(st.text_input(f"Scale uncertainty [g] for solute {i+1}", "0.001"))
@@ -94,7 +120,7 @@ for i in range(int(n_solutes)):
         total_conc_molL += conc_molL
         total_unc_sq += u_c**2
 
-# --- Display results ---
+# --- Output ---
 if results:
     st.subheader("Component‑wise Results")
     for r in results:
@@ -106,4 +132,4 @@ if results:
 
     st.subheader("Overall Solution")
     st.write(f"**Total concentration:** {total_conc_molL:.6f} mol/L")
-    st.write(f"**Combined uncertainty (RSS of components):** ± {math.sqrt(total_unc_sq):.6f} mol/L")
+    st.write(f"**Combined uncertainty (RSS):** ± {math.sqrt(total_unc_sq):.6f} mol/L")
