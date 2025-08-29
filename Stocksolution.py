@@ -4,6 +4,7 @@ import streamlit as st
 from molmass import Formula
 from collections import defaultdict
 import pandas as pd
+import numpy as np
 
 # --- Helpers ---
 def mass_required_molar(M, conc_mol_L, vol_L, purity):
@@ -32,9 +33,39 @@ def parse_float(x, default=0.0):
     except ValueError:
         return default
 
+# Solve reverse problem: element mg/L → molecule masses
+def solve_masses(element_targets, molecules):
+    """
+    element_targets: dict {element_symbol: target mg/L}
+    molecules: list of (formula, purity_frac)
+    Returns: list of masses (g/L) of each molecule to satisfy targets (least squares)
+    """
+    # Build stoichiometry matrix in g element per mol molecule
+    elems = list(element_targets.keys())
+    A = np.zeros((len(elems), len(molecules)))
+    for j, (formula, purity) in enumerate(molecules):
+        try:
+            atom_dict = Formula(formula).atoms
+            for i, el in enumerate(elems):
+                if el in atom_dict:
+                    A[i, j] = atom_dict[el] * Formula(el).mass
+        except Exception:
+            pass
+    # Convert targets to g/L
+    b = np.array([element_targets[e] / 1000.0 for e in elems])
+    # Purity: adjust A by purity fraction
+    for j, (_, purity) in enumerate(molecules):
+        A[:, j] *= purity
+    # Solve least squares for mol/L
+    mols, *_ = np.linalg.lstsq(A, b, rcond=None)
+    masses_gL = mols * [Formula(f).mass for f, _ in molecules]
+    return masses_gL
+
 # --- UI ---
 st.set_page_config(page_title="Multi‑Solute Solution Prep", page_icon="🧪")
-st.title("🧪 Stock solution required mass calculator")
+st.title("🧪 Multi‑Component Solution Preparation — Forward & Reverse Modes")
+
+mode = st.radio("Select input mode:", ["By Molecule Concentration", "By Element Concentration"])
 
 use_mass_density = st.checkbox("Enter total solution mass & density instead of volume", value=False)
 
@@ -72,63 +103,67 @@ else:
     vol_L = sol_mass_g / (sol_density_gmL * 1000.0)
     u_vol_L = u_mass_sol / (sol_density_gmL * 1000.0)
 
-n_solutes = st.number_input("Number of different solutes", min_value=1, value=2, step=1)
+# --- Mode 1: Forward ---
+if mode == "By Molecule Concentration":
+    n_solutes = st.number_input("Number of different solutes", min_value=1, value=2, step=1)
+    results = []
+    element_mgL = defaultdict(float)
 
-results = []
-element_mgL = defaultdict(float)
+    for i in range(int(n_solutes)):
+        st.markdown(f"### Solute {i+1}")
+        formula = st.text_input(f"Formula {i+1}", "NaCl", key=f"f_{i}")
+        conc_val = parse_float(st.text_input(f"Target conc {i+1}", "0.1"), 0.0)
+        conc_unit = st.selectbox(f"Concentration unit {i+1}", ["mol/L", "mg/L"], key=f"cu_{i}")
+        purity_pct = parse_float(st.text_input(f"Purity [%] {i+1}", "99.5"))
+        u_purity_pct = parse_float(st.text_input(f"Purity uncertainty [%] {i+1}", "0.05"))
+        u_mass_g = parse_float(st.text_input(f"Scale uncertainty [g] for solute {i+1}", "0.001"))
 
-# --- Data entry ---
-for i in range(int(n_solutes)):
-    st.markdown(f"### Solute {i+1}")
-    formula = st.text_input(f"Formula {i+1}", "NaCl", key=f"f_{i}")
-    conc_val = parse_float(st.text_input(f"Target conc {i+1}", "0.1"), 0.0)
-    conc_unit = st.selectbox(f"Concentration unit {i+1}", ["mol/L", "mg/L"], key=f"cu_{i}")
-    purity_pct = parse_float(st.text_input(f"Purity [%] {i+1}", "99.5"))
-    u_purity_pct = parse_float(st.text_input(f"Purity uncertainty [%] {i+1}", "0.05"))
-    u_mass_g = parse_float(st.text_input(f"Scale uncertainty [g] for solute {i+1}", "0.001"))
+        if formula and conc_val > 0:
+            M = Formula(formula).mass
+            conc_molL = conc_val if conc_unit == "mol/L" else mgL_to_molL(conc_val, M)
+            purity = purity_pct / 100.0
+            u_purity = u_purity_pct / 100.0
+            m_req = mass_required_molar(M, conc_molL, vol_L, purity)
+            u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
 
-    if formula and conc_val > 0:
-        M = Formula(formula).mass
-        conc_molL = conc_val if conc_unit == "mol/L" else mgL_to_molL(conc_val, M)
-        purity = purity_pct / 100.0
-        u_purity = u_purity_pct / 100.0
-        m_req = mass_required_molar(M, conc_molL, vol_L, purity)
-        u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
+            results.append({
+                "formula": formula,
+                "M": M,
+                "conc_molL": conc_molL,
+                "conc_mgL": molL_to_mgL(conc_molL, M),
+                "m_req": m_req,
+                "u_c": u_c
+            })
 
-        results.append({
-            "formula": formula,
-            "M": M,
-            "conc_molL": conc_molL,
-            "conc_mgL": molL_to_mgL(conc_molL, M),
-            "m_req": m_req,
-            "u_c": u_c
-        })
+            try:
+                atoms = Formula(formula).atoms
+                for sym, count in atoms.items():
+                    element_mgL[sym] += conc_molL * count * Formula(sym).mass * 1000.0
+            except Exception:
+                pass
 
-        try:
-            atoms = Formula(formula).atoms
-            for sym, count in atoms.items():
-                element_mgL[sym] += conc_molL * count * Formula(sym).mass * 1000.0
-        except Exception:
-            pass
+    if results:
+        st.subheader("Component‑wise Results")
+        for r in results:
+            st.markdown(f"**{r['formula']}**")
+            st.write(f"- Molar mass: {r['M']:.5f} g/mol")
+            st.write(f"- Required mass: {r['m_req']:.5f} g")
+            st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
+            st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
 
-# --- Output ---
-if results:
-    st.subheader("Component‑wise Results")
-    for r in results:
-        st.markdown(f"**{r['formula']}**")
-        st.write(f"- Molar mass: {r['M']:.5f} g/mol")
-        st.write(f"- Required mass: {r['m_req']:.5f} g")
-        st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
-        st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
+        if element_mgL:
+            df_elements = pd.DataFrame(
+                sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
+                columns=["Element", "Concentration (mg/L)"]
+            )
+            df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
+            st.markdown("### Element concentrations in solution (mg/L)")
+            st.dataframe(df_elements, use_container_width=True)
 
-    if element_mgL:
-        st.markdown("### Element concentrations in solution (mg/L)")
-        st.write("Each value sums contributions from all solutes containing that element.")
-
-        df_elements = pd.DataFrame(
-            sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
-            columns=["Element", "Concentration (mg/L)"]
-        )
-        # Format numbers
-        df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
-        st.dataframe(df_elements, use_container_width=True)
+# --- Mode 2: Reverse ---
+if mode == "By Element Concentration":
+    n_elems = st.number_input("Number of different target elements", min_value=1, value=2, step=1)
+    element_targets = {}
+    for i in range(int(n_elems)):
+        ec1, ec2 = st.columns([2, 2])
+        with ec
