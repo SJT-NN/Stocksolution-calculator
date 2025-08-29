@@ -1,85 +1,53 @@
-import csv
-import io
-import streamlit as st
-from molmass import Formula
-
-# --- Core calculation ---
-DEFAULT_UNIT = "g/mol"  # options: g/mol, kg/mol, amu
-
+# --- Core molar mass calculation ---
 def molar_mass_and_uncertainty(formula_str):
     f = Formula(formula_str)
     molar_mass = f.mass
-    uncertainty_sq = 0.0
+    u_sq = 0.0
     for elem, count in f.composition():
         atomic_unc = elem.mass_uncertainty or 0.0
-        uncertainty_sq += (count * atomic_unc) ** 2
-    uncertainty = uncertainty_sq ** 0.5
-    return molar_mass, uncertainty
+        u_sq += (count * atomic_unc) ** 2
+    return molar_mass, math.sqrt(u_sq)
 
-def convert_units(value, from_unit="g/mol", to_unit="g/mol"):
-    if from_unit == to_unit:
-        return value
-    if from_unit == "g/mol" and to_unit == "kg/mol":
-        return value / 1000
-    if from_unit == "g/mol" and to_unit == "amu":
-        return value / 1.0
-    if from_unit == "kg/mol" and to_unit == "g/mol":
-        return value * 1000
-    if from_unit == "amu" and to_unit == "g/mol":
-        return value * 1.0
-    raise ValueError(f"Conversion {from_unit} → {to_unit} not supported")
+# --- Mass required ---
+def mass_required(M, conc, vol):
+    return M * conc * vol  # g
 
-def process_formulas(formulas, unit=DEFAULT_UNIT):
-    results = []
-    for formula in formulas:
-        mm, unc = molar_mass_and_uncertainty(formula)
-        results.append({
-            "Formula": formula,
-            "Molar Mass": convert_units(mm, "g/mol", unit),
-            "Uncertainty": convert_units(unc, "g/mol", unit),
-            "Unit": unit
-        })
-    return results
+# --- Error propagation ---
+def propagated_uncertainty(M, u_M, conc, u_conc, vol, u_vol):
+    """
+    Mass = M * conc * vol
+    Total uncertainty combines effects from M, conc, and vol:
+
+    u_m = sqrt( (∂m/∂M * u_M)^2 +
+                (∂m/∂c * u_c)^2 +
+                (∂m/∂V * u_V)^2 )
+    """
+    dm_dM = conc * vol
+    dm_dc = M * vol
+    dm_dV = M * conc
+    return math.sqrt(
+        (dm_dM * u_M) ** 2 +
+        (dm_dc * u_conc) ** 2 +
+        (dm_dV * u_vol) ** 2
+    )
 
 # --- Streamlit UI ---
-st.set_page_config(page_title="Batch Molar Mass Calculator", page_icon="🧪")
-st.title("🧪 Batch Molar Mass Calculator")
-st.markdown("Upload a CSV of chemical formulas or enter one manually to get molar mass and uncertainties.")
+st.set_page_config(page_title="Solution Prep Calculator", page_icon="🧪")
+st.title("🧪 Solution Preparation Calculator")
+st.markdown("Enter formula, target concentration, and volume to compute required mass — including uncertainty from all three inputs.")
 
-# Unit selection
-unit = st.selectbox("Output unit", ["g/mol", "kg/mol", "amu"], index=0)
+formula = st.text_input("Chemical formula", "NaCl")
+conc = st.number_input("Target concentration [mol/L]", value=0.1, min_value=0.0, step=0.01, format="%.4f")
+u_conc = st.number_input("Concentration uncertainty [mol/L]", value=0.0005, min_value=0.0, step=0.0001, format="%.5f")
+vol = st.number_input("Solution volume [L]", value=1.0, min_value=0.0, step=0.1, format="%.4f")
+u_vol = st.number_input("Volume uncertainty [L]", value=0.001, min_value=0.0, step=0.0001, format="%.5f")
 
-# Manual input
-manual_formula = st.text_input("Enter a chemical formula (e.g., H2O, C6H12O6)")
+if formula and conc > 0 and vol > 0:
+    M, u_M = molar_mass_and_uncertainty(formula)
+    m = mass_required(M, conc, vol)
+    u_m = propagated_uncertainty(M, u_M, conc, u_conc, vol, u_vol)
 
-# File upload
-uploaded_file = st.file_uploader("Or upload a CSV file (first column = formulas)", type=["csv"])
-
-results = []
-
-if manual_formula:
-    results = process_formulas([manual_formula], unit)
-
-elif uploaded_file:
-    content = uploaded_file.read().decode("utf-8")
-    reader = csv.reader(io.StringIO(content))
-    formulas = [row[0].strip() for row in reader if row]
-    results = process_formulas(formulas, unit)
-
-# Display results
-if results:
     st.subheader("Results")
-    st.dataframe(results)
-
-    # Download as CSV
-    output_csv = io.StringIO()
-    writer = csv.DictWriter(output_csv, fieldnames=["Formula", "Molar Mass", "Uncertainty", "Unit"])
-    writer.writeheader()
-    writer.writerows(results)
-
-    st.download_button(
-        label="Download results as CSV",
-        data=output_csv.getvalue(),
-        file_name="molar_masses.csv",
-        mime="text/csv"
-    )
+    st.write(f"**Molar mass:** {M:.5f} ± {u_M:.5f} g/mol")
+    st.write(f"**Required mass:** {m:.5f} ± {u_m:.5f} g")
+    st.caption("Uncertainty is combined from molar mass, concentration, and volume measurements.")
