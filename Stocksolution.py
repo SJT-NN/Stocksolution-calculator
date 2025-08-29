@@ -48,7 +48,7 @@ st.title("🧪 Multi‑Component Solution Preparation with Element‑Wise Uncert
 use_mass_density = st.checkbox("Enter total solution mass & density instead of volume", value=False)
 
 if not use_mass_density:
-    # Solution volume and unit on the same line
+    # Solution volume + unit
     vol_col, vol_unit_col = st.columns([2, 1])
     with vol_col:
         vol_value = parse_float(st.text_input("Solution volume", "1.0"))
@@ -56,7 +56,7 @@ if not use_mass_density:
         vol_unit = st.selectbox("Unit", ["L", "mL"], index=0)
     vol_L = vol_value / 1000.0 if vol_unit == "mL" else vol_value
 
-    # Volume uncertainty and unit on the same line
+    # Volume uncertainty + unit
     uvol_col, uvol_unit_col = st.columns([2, 1])
     with uvol_col:
         u_vol_value = parse_float(st.text_input("Volume uncertainty", "0.001"))
@@ -64,7 +64,7 @@ if not use_mass_density:
         u_vol_unit = st.selectbox("Uncertainty Unit", ["L", "mL"], index=0)
     u_vol_L = u_vol_value / 1000.0 if u_vol_unit == "mL" else u_vol_value
 else:
-    # Mass and unit on same line
+    # Mass + unit
     mass_col, mass_unit_col = st.columns([2, 1])
     with mass_col:
         sol_mass_val = parse_float(st.text_input("Total solution mass", "100.0"))
@@ -72,7 +72,7 @@ else:
         mass_unit = st.selectbox("Mass unit", ["g", "kg"], index=0)
     sol_mass_g = sol_mass_val * (1000.0 if mass_unit == "kg" else 1.0)
 
-    # Scale uncertainty for total mass + unit on same line
+    # Scale uncertainty + unit
     umass_col, umass_unit_col = st.columns([2, 1])
     with umass_col:
         u_mass_sol_val = parse_float(st.text_input("Scale uncertainty for solution mass", "0.01"))
@@ -82,7 +82,7 @@ else:
 
     sol_density_gmL = parse_float(st.text_input("Solution density [g/mL]", "1.00"))
 
-    # Convert to volume (L) and its uncertainty
+    # Convert to L and its uncertainty
     vol_L = sol_mass_g / (sol_density_gmL * 1000.0)
     u_vol_L = u_mass_sol / (sol_density_gmL * 1000.0)
 
@@ -93,9 +93,10 @@ results = []
 total_conc_molL = 0.0
 total_unc_sq = 0.0
 
-# NEW: element-wise concentration accumulator (mg/L)
+# Element concentration accumulator
 element_mgL = defaultdict(float)
 
+# Data entry loop
 for i in range(int(n_solutes)):
     st.markdown(f"### Solute {i+1}")
     formula = st.text_input(f"Formula {i+1}", "NaCl", key=f"f_{i}")
@@ -113,7 +114,6 @@ for i in range(int(n_solutes)):
         m_req = mass_required_molar(M, conc_molL, vol_L, purity)
         u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
 
-        # Record per-solute outputs
         results.append({
             "formula": formula,
             "M": M,
@@ -125,14 +125,13 @@ for i in range(int(n_solutes)):
         total_conc_molL += conc_molL
         total_unc_sq += u_c**2
 
-        # Accumulate element-wise mg/L from this solute
+        # Element breakdown
         try:
-            atoms = Formula(formula).atoms  # dict like {'Na':1, 'Cl':1}
+            atoms = Formula(formula).atoms
             for sym, count in atoms.items():
-                # atomic mass via Formula(sym).mass (g/mol) -> mg/L = c * n * M_e * 1000
                 element_mgL[sym] += conc_molL * count * Formula(sym).mass * 1000.0
         except Exception:
-            pass  # If parsing fails, skip element breakdown for this solute
+            pass
 
 # --- Output ---
 if results:
@@ -148,9 +147,8 @@ if results:
     st.write(f"**Total concentration:** {total_conc_molL:.6f} mol/L")
     st.write(f"**Combined uncertainty (RSS):** ± {math.sqrt(total_unc_sq):.6f} mol/L")
 
-    # NEW: Element-wise concentration summary (mg/L)
     if element_mgL:
-        st.markdown("**Element concentrations (mg/L):**")
-        # Sort by descending mg/L for readability
+        st.markdown("### Element concentrations in solution (mg/L)")
+        st.write("Each value sums contributions from all solutes containing that element.")
         for sym, val in sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True):
             st.write(f"- {sym}: {val:.3f} mg/L")
