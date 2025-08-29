@@ -161,5 +161,27 @@ if mode == "Reverse: By Element Concentration":
         for el in unique_elements:
             c1, c2 = st.columns([2, 1])
             with c1:
-                val = parse_float(st.text_input(f"{el} concentration", "0.0", key=f"target_val_{el}"))
-            with c
+                val = parse_float(
+                    st.text_input(f"{el} concentration", "0.0", key=f"target_val_{el}")
+                )
+            with c2:
+                unit = st.selectbox(
+                    "Unit",
+                    ["mg/L", "mol/L"],
+                    key=f"target_unit_{el}"
+                )
+
+            # Convert to mg/L internally
+            if unit == "mol/L":
+                val = molL_to_mgL(val, Formula(el).mass)
+
+            element_targets[el] = val
+
+        # Step 4 — Solve for solute amounts
+        if st.button("Calculate required solute masses"):
+            masses_gL = solve_masses(element_targets, molecules)
+
+            st.subheader("Required solute masses")
+            for (formula, _), mass in zip(molecules, masses_gL):
+                total_mass = mass * vol_L
+                st.write(f"- **{formula}**: {mass:.5f} g/L → {total_mass:.5f} g total for {vol_L} L batch")
