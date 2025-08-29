@@ -186,18 +186,26 @@ if mode == "By Element Concentration":
                 pass
         unique_elements = sorted(unique_elements)
 
-        # Step 3: Get target concentrations for each element
+       # Step 3: Get target concentrations for each element
         st.subheader("Target element concentrations")
         element_targets = {}
         for el in unique_elements:
-            val = parse_float(
-                st.text_input(
-                    f"{el} target concentration (mg/L)",
-                    "0.0",
-                    key=f"el_target_{el}"
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                conc_value = parse_float(
+                    st.text_input(f"{el} target concentration", "0.0", key=f"el_target_val_{el}")
                 )
-            )
-            element_targets[el] = val
+            with col2:
+                conc_unit = st.selectbox(
+                    "Unit",
+                    ["mg/L", "mol/L"],
+                    key=f"el_target_unit_{el}"
+                )
+
+            # Convert everything internally to mg/L
+            if conc_unit == "mol/L":
+                conc_value = molL_to_mgL(conc_value, Formula(el).mass)
+            element_targets[el] = conc_value
 
         # Step 4: Compute masses
         if st.button("Calculate required solute masses"):
