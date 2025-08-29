@@ -10,19 +10,12 @@ def molar_mass(formula_str):
 
 # --- Required mass, purity‑corrected ---
 def mass_required(M, conc, vol_L, purity):
-    """
-    M in g/mol, conc in mol/L, vol_L in L, purity as fraction (0–1)
-    """
     pure_mass = M * conc * vol_L
     return pure_mass / purity
 
-# --- Uncertainty propagation (concentration, volume, purity, scale) ---
+# --- Uncertainty propagation ---
 def propagated_uncertainty(M, conc, u_conc, vol_L, u_vol_L,
                            purity, u_purity, u_scale):
-    """
-    m = (M * c * V) / p
-    Combine contributions from c, V, p plus independent scale noise.
-    """
     dm_dc = (M * vol_L) / purity
     dm_dV = (M * conc) / purity
     dm_dp = -(M * conc * vol_L) / (purity ** 2)
@@ -34,7 +27,14 @@ def propagated_uncertainty(M, conc, u_conc, vol_L, u_vol_L,
         (u_scale) ** 2
     )
 
-# --- Streamlit UI ---
+# --- Safe float parser ---
+def parse_float(text, default=0.0):
+    try:
+        return float(text)
+    except ValueError:
+        return default
+
+# --- UI ---
 st.set_page_config(page_title="Solution Prep Calculator", page_icon="🧪")
 st.title("🧪 Solution Preparation Calculator")
 st.markdown(
@@ -48,36 +48,27 @@ formula = st.text_input("Chemical formula", "NaCl")
 # Concentration & its uncertainty
 col1, col2 = st.columns(2)
 with col1:
-    conc = st.number_input("Target concentration [mol/L]", value=0.1,
-                            min_value=0.0, step=0.01, format="%.4f")
+    conc = parse_float(st.text_input("Target concentration [mol/L]", "0.1"))
 with col2:
-    u_conc = st.number_input("Concentration uncertainty [mol/L]", value=0.0005,
-                              min_value=0.0, step=0.0001, format="%.5f")
+    u_conc = parse_float(st.text_input("Concentration uncertainty [mol/L]", "0.0005"))
 
 # Volume and units
 col3, col4 = st.columns(2)
 with col3:
-    vol_value = st.number_input("Solution volume", value=100.0,
-                                min_value=0.0, step=1.0, format="%.3f")
+    vol_value = parse_float(st.text_input("Solution volume", "100.0"))
     vol_unit = st.selectbox("Volume unit", ["mL", "L"], index=0)
 with col4:
-    u_vol_value = st.number_input("Volume uncertainty", value=0.1,
-                                  min_value=0.0, step=0.01, format="%.4f")
+    u_vol_value = parse_float(st.text_input("Volume uncertainty", "0.1"))
     u_vol_unit = st.selectbox("Uncertainty volume unit", ["mL", "L"], index=0)
 
 # Purity & scale uncertainties
 col5, col6 = st.columns(2)
 with col5:
-    purity_percent = st.number_input("Purity of chemical [%]",
-                                     value=99.5, min_value=0.0, max_value=100.0,
-                                     step=0.1, format="%.3f")
+    purity_percent = parse_float(st.text_input("Purity of chemical [%]", "99.5"))
 with col6:
-    u_purity_percent = st.number_input("Purity uncertainty [%]",
-                                       value=0.05, min_value=0.0,
-                                       step=0.01, format="%.4f")
+    u_purity_percent = parse_float(st.text_input("Purity uncertainty [%]", "0.05"))
 
-u_scale = st.number_input("Scale uncertainty [g]",
-                          value=0.001, min_value=0.0, step=0.0001, format="%.5f")
+u_scale = parse_float(st.text_input("Scale uncertainty [g]", "0.001"))
 
 # --- Convert to base units ---
 vol_L = vol_value / 1000.0 if vol_unit == "mL" else vol_value
