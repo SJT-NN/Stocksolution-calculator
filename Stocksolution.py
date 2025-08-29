@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import math
 import streamlit as st
-from molmass import Formula, element
+from molmass import Formula
 
 # --- Molar mass & its uncertainty from molmass ---
 def molar_mass_and_uncertainty(formula_str):
