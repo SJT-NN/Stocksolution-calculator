@@ -59,10 +59,10 @@ def fetch_smiles(name_or_formula):
 st.title("🧪 Stock Solution Mass Calculator")
 
 chem_input = st.text_input("Chemical name or formula", "NaCl")
-molarity = st.number_input("Target molarity (mol/L)", value=1.0, min_value=0.0)
-volume = st.number_input("Target volume (L)", value=1.0, min_value=0.0)
-purity = st.number_input("Purity (%)", value=100.0, min_value=0.0, max_value=100.0)
-u_purity = st.number_input("Purity uncertainty (%)", value=0.0, min_value=0.0)
+molarity = st.text_input("Target molarity (mol/L)", value=1.0, min_value=0.0)
+volume = st.text_input("Target volume (L)", value=1.0, min_value=0.0)
+purity = st.text_input("Purity (%)", value=100.0, min_value=0.0, max_value=100.0)
+u_purity = st.text_input("Purity uncertainty (%)", value=0.0, min_value=0.0)
 
 if chem_input:
     mmass, u_mmass = molar_mass_and_uncertainty(chem_input)
