@@ -40,7 +40,6 @@ def solve_masses(element_targets, molecules):
     molecules: list of (formula, purity_frac)
     Returns: list of masses (g/L) of each molecule to satisfy targets (least squares)
     """
-    # Build stoichiometry matrix in g element per mol molecule
     elems = list(element_targets.keys())
     A = np.zeros((len(elems), len(molecules)))
     for j, (formula, purity) in enumerate(molecules):
@@ -51,12 +50,9 @@ def solve_masses(element_targets, molecules):
                     A[i, j] = atom_dict[el] * Formula(el).mass
         except Exception:
             pass
-    # Convert targets to g/L
     b = np.array([element_targets[e] / 1000.0 for e in elems])
-    # Purity: adjust A by purity fraction
     for j, (_, purity) in enumerate(molecules):
         A[:, j] *= purity
-    # Solve least squares for mol/L
     mols, *_ = np.linalg.lstsq(A, b, rcond=None)
     masses_gL = mols * [Formula(f).mass for f, _ in molecules]
     return masses_gL
@@ -161,39 +157,21 @@ if mode == "By Molecule Concentration":
             st.dataframe(df_elements, use_container_width=True)
 
 # --- Mode 2: Reverse ---
-        if mode == "By Element Concentration":
-            # Step 1: Get solute list
-            n_solutes = st.number_input("Number of available solutes", min_value=1, value=2, step=1)
-            molecules = []
-            for i in range(int(n_solutes)):
-                sc1, sc2 = st.columns([2, 1])
-            with sc1:
-                formula = st.text_input(f"Solute {i+1} formula", key=f"sol_formula_{i}")
-            with sc2:
-                purity_pct = parse_float(st.text_input(f"Purity % for {formula or f'Solute {i+1}'}", "100.0", key=f"pur_{i}"))
-            if formula:
-                molecules.append((formula, purity_pct/100.0))
-
-            if molecules:
-            # Step 2: Collect unique element names from all solutes
-            unique_elements = set()
-                for formula, _ in molecules:
-                    try:
-                        unique_elements.update(Formula(formula).atoms.keys())
-                    except Exception:
-                        pass
-                unique_elements = sorted(unique_elements)
-
-            # Step 3: Get target concentrations for each element
-            st.subheader("Target element concentrations")
-            element_targets = {}
-            for el in unique_elements:
-                val = parse_float(st.text_input(f"{el} target concentration (mg/L)", "0.0", key=f"el_target_{el}"))
-                element_targets[el] = val
-
-            # Step 4: Compute masses
-            if st.button("Calculate required solute masses"):
-                masses_gL = solve_masses(element_targets, molecules)
-                st.subheader("Required solute masses")
-                for (formula, _), mass in zip(molecules, masses_gL):
-                    st.write(f"- **{formula}**: {mass:.5f} g/L (total for target composition)")
+if mode == "By Element Concentration":
+    # Step 1: Get solute list
+    n_solutes = st.number_input("Number of available solutes", min_value=1, value=2, step=1)
+    molecules = []
+    for i in range(int(n_solutes)):
+        sc1, sc2 = st.columns([2, 1])
+        with sc1:
+            formula = st.text_input(f"Solute {i+1} formula", key=f"sol_formula_{i}")
+        with sc2:
+            purity_pct = parse_float(
+                st.text_input(
+                    f"Purity % for {formula or f'Solute {i+1}'}",
+                    "100.0",
+                    key=f"pur_{i}"
+                )
+            )
+        if formula:
+            molecules.append((formula,
