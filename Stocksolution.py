@@ -34,7 +34,7 @@ def parse_float(x, default=0.0):
 
 # --- UI ---
 st.set_page_config(page_title="Multi‑Solute Solution Prep", page_icon="🧪")
-st.title("🧪 Multi‑Component Solution Preparation with Element‑Wise Uncertainty")
+st.title("🧪 Stock solution required mass calculator")
 
 use_mass_density = st.checkbox("Enter total solution mass & density instead of volume", value=False)
 
