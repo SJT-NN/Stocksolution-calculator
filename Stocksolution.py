@@ -3,7 +3,7 @@ import math
 import streamlit as st
 from molmass import Formula
 
-# --- Molar mass from multiple formulas ---
+# --- Helpers ---
 def molar_mass_multi(formulas_str):
     total_mass = 0.0
     for f_str in formulas_str.split(','):
@@ -13,19 +13,16 @@ def molar_mass_multi(formulas_str):
             total_mass += f.mass
     return total_mass
 
-# --- Mass required given purity ---
 def mass_required_molar(M, conc_mol_L, vol_L, purity):
     pure_mass = M * conc_mol_L * vol_L
     return pure_mass / purity
 
-# --- Convert mg/L ↔ mol/L ---
 def mgL_to_molL(conc_mg_L, M):
     return conc_mg_L / 1000.0 / M
 
 def molL_to_mgL(conc_mol_L, M):
     return conc_mol_L * M * 1000.0
 
-# --- Uncertainty of concentration ---
 def conc_uncertainty(M, m_weighed, u_mass, vol_L, u_vol_L, purity, u_purity):
     dc_dm = purity / (M * vol_L)
     dc_dV = -(m_weighed * purity) / (M * vol_L**2)
@@ -36,7 +33,6 @@ def conc_uncertainty(M, m_weighed, u_mass, vol_L, u_vol_L, purity, u_purity):
         (dc_dp * u_purity) ** 2
     )
 
-# --- Safe float parser ---
 def parse_float(text, default=0.0):
     try:
         return float(text)
@@ -47,7 +43,6 @@ def parse_float(text, default=0.0):
 st.set_page_config(page_title="Solution Prep Calculator", page_icon="🧪")
 st.title("🧪 Multi‑Component Solution Preparation Calculator")
 
-# Chemical formulas
 formulas_str = st.text_input("Chemical formula(s) (comma‑separated)", "NaCl")
 
 # Target concentration and unit
@@ -57,7 +52,7 @@ with conc_col:
 with unit_col:
     conc_unit = st.selectbox("Concentration unit", ["mol/L", "mg/L"])
 
-# Toggle for using mass & density
+# Toggle for mass/density mode
 use_mass_density = st.checkbox("Enter solution mass & density instead of volume", value=False)
 
 if not use_mass_density:
@@ -69,14 +64,28 @@ if not use_mass_density:
         vol_unit = st.selectbox("Volume unit", ["mL", "L"], index=0)
     vol_L = vol_value / 1000.0 if vol_unit == "mL" else vol_value
     u_vol_L = parse_float(st.text_input("Volume uncertainty", "0.1")) / (1000.0 if vol_unit == "mL" else 1)
-    u_mass_sol = 0.0  # not used here
+    u_mass_sol = 0.0
 else:
     # Mass & density mode
-    sol_mass_g = parse_float(st.text_input("Total solution mass [g]", "100.0"))
-    u_mass_sol = parse_float(st.text_input("Scale uncertainty for solution mass [g]", "0.01"))
+    mcol, mun_col = st.columns([2, 1])
+    with mcol:
+        sol_mass_val = parse_float(st.text_input("Total solution mass", "0.100"))
+    with mun_col:
+        mass_unit = st.selectbox("Mass unit", ["g", "kg"], index=0)
+
+    umcol, umun_col = st.columns([2, 1])
+    with umcol:
+        u_mass_sol_val = parse_float(st.text_input("Scale uncertainty for solution mass", "0.001"))
+    with umun_col:
+        u_mass_unit = st.selectbox("Uncertainty mass unit", ["g", "kg"], index=0)
+
     sol_density_gmL = parse_float(st.text_input("Solution density [g/mL]", "1.00"))
+
+    # Convert all to litres
+    sol_mass_g = sol_mass_val * (1000.0 if mass_unit == "kg" else 1.0)
+    u_mass_sol = u_mass_sol_val * (1000.0 if u_mass_unit == "kg" else 1.0)
+
     vol_L = sol_mass_g / (sol_density_gmL * 1000.0)
-    # propagate uncertainty in vol from mass uncertainty
     u_vol_L = u_mass_sol / (sol_density_gmL * 1000.0)
 
 # Purity & uncertainties
