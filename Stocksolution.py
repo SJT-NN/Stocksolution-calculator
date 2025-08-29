@@ -1,3 +1,7 @@
+import streamlit as st
+from molmass import Formula
+import math
+
 # --- Core molar mass calculation ---
 def molar_mass_and_uncertainty(formula_str):
     f = Formula(formula_str)
