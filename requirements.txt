@@ -1,4 +1,8 @@
-streamlit
-pubchempy
-rdkit-pypi
-numpy
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - streamlit
+  - pubchempy
+  - numpy
+  - rdkit
