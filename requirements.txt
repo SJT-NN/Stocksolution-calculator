@@ -1,8 +1,5 @@
-channels:
-  - conda-forge
-dependencies:
-  - python=3.10
-  - streamlit
-  - pubchempy
-  - numpy
-  - rdkit
+streamlit==1.32.2
+pubchempy==1.0.4
+numpy==1.26.4
+rdkit-pypi==2022.9.5
+rich==13.7.1
