@@ -90,9 +90,6 @@ else:
 n_solutes = st.number_input("Number of different solutes", min_value=1, value=2, step=1)
 
 results = []
-total_conc_molL = 0.0
-total_unc_sq = 0.0
-
 # Element concentration accumulator
 element_mgL = defaultdict(float)
 
@@ -122,8 +119,6 @@ for i in range(int(n_solutes)):
             "m_req": m_req,
             "u_c": u_c
         })
-        total_conc_molL += conc_molL
-        total_unc_sq += u_c**2
 
         # Element breakdown
         try:
@@ -142,10 +137,6 @@ if results:
         st.write(f"- Required mass: {r['m_req']:.5f} g")
         st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
         st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
-
-    st.subheader("Overall Solution")
-    st.write(f"**Total concentration:** {total_conc_molL:.6f} mol/L")
-    st.write(f"**Combined uncertainty (RSS):** ± {math.sqrt(total_unc_sq):.6f} mol/L")
 
     if element_mgL:
         st.markdown("### Element concentrations in solution (mg/L)")
