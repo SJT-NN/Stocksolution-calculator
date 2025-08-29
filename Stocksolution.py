@@ -6,7 +6,13 @@ from collections import defaultdict
 import pandas as pd
 import numpy as np
 
-# --- Helpers ---
+# ---------- Helpers ----------
+def parse_float(x, default=0.0):
+    try:
+        return float(x)
+    except ValueError:
+        return default
+
 def mass_required_molar(M, conc_mol_L, vol_L, purity):
     pure_mass = M * conc_mol_L * vol_L
     return pure_mass / purity
@@ -21,17 +27,7 @@ def conc_uncertainty_component(M, m_weighed, u_mass, vol_L, u_vol_L, purity, u_p
     dc_dm = purity / (M * vol_L)
     dc_dV = -(m_weighed * purity) / (M * vol_L**2)
     dc_dp = m_weighed / (M * vol_L)
-    return math.sqrt(
-        (dc_dm * u_mass) ** 2 +
-        (dc_dV * u_vol_L) ** 2 +
-        (dc_dp * u_purity) ** 2
-    )
-
-def parse_float(x, default=0.0):
-    try:
-        return float(x)
-    except ValueError:
-        return default
+    return math.sqrt((dc_dm * u_mass)**2 + (dc_dV * u_vol_L)**2 + (dc_dp * u_purity)**2)
 
 # Solve reverse problem: element mg/L → molecule masses
 def solve_masses(element_targets, molecules):
@@ -50,48 +46,39 @@ def solve_masses(element_targets, molecules):
                     A[i, j] = atom_dict[el] * Formula(el).mass
         except Exception:
             pass
+    # Convert targets to g/L
     b = np.array([element_targets[e] / 1000.0 for e in elems])
+    # Adjust by purity
     for j, (_, purity) in enumerate(molecules):
         A[:, j] *= purity
     mols, *_ = np.linalg.lstsq(A, b, rcond=None)
     masses_gL = mols * [Formula(f).mass for f, _ in molecules]
     return masses_gL
 
-# --- UI ---
+# ---------- UI ----------
 st.set_page_config(page_title="Multi‑Solute Solution Prep", page_icon="🧪")
-st.title("🧪 Multi‑Component Solution Preparation — Forward & Reverse Modes")
+st.title("🧪 Multi‑Component Solution Preparation")
 
-mode = st.radio("Select input mode:", ["By Molecule Concentration", "By Element Concentration"])
+mode = st.radio("Select mode:", ["Forward: By Molecule Concentration", "Reverse: By Element Concentration"])
 
+# Volume / Mass selection
 use_mass_density = st.checkbox("Enter total solution mass & density instead of volume", value=False)
 
 if not use_mass_density:
-    vol_col, vol_unit_col = st.columns([2, 1])
-    with vol_col:
-        vol_value = parse_float(st.text_input("Solution volume", "1.0"))
-    with vol_unit_col:
-        vol_unit = st.selectbox("Unit", ["L", "mL"], index=0)
+    vol_value = parse_float(st.text_input("Solution volume", "1.0"))
+    vol_unit = st.selectbox("Volume unit", ["L", "mL"], index=0)
     vol_L = vol_value / 1000.0 if vol_unit == "mL" else vol_value
 
-    uvol_col, uvol_unit_col = st.columns([2, 1])
-    with uvol_col:
-        u_vol_value = parse_float(st.text_input("Volume uncertainty", "0.001"))
-    with uvol_unit_col:
-        u_vol_unit = st.selectbox("Uncertainty Unit", ["L", "mL"], index=0)
+    u_vol_value = parse_float(st.text_input("Volume uncertainty", "0.001"))
+    u_vol_unit = st.selectbox("Uncertainty volume unit", ["L", "mL"], index=0)
     u_vol_L = u_vol_value / 1000.0 if u_vol_unit == "mL" else u_vol_value
 else:
-    mass_col, mass_unit_col = st.columns([2, 1])
-    with mass_col:
-        sol_mass_val = parse_float(st.text_input("Total solution mass", "100.0"))
-    with mass_unit_col:
-        mass_unit = st.selectbox("Mass unit", ["g", "kg"], index=0)
+    sol_mass_val = parse_float(st.text_input("Total solution mass", "100.0"))
+    mass_unit = st.selectbox("Mass unit", ["g", "kg"], index=0)
     sol_mass_g = sol_mass_val * (1000.0 if mass_unit == "kg" else 1.0)
 
-    umass_col, umass_unit_col = st.columns([2, 1])
-    with umass_col:
-        u_mass_sol_val = parse_float(st.text_input("Scale uncertainty for solution mass", "0.01"))
-    with umass_unit_col:
-        u_mass_unit = st.selectbox("Uncertainty mass unit", ["g", "kg"], index=0)
+    u_mass_sol_val = parse_float(st.text_input("Scale uncertainty for solution mass", "0.01"))
+    u_mass_unit = st.selectbox("Uncertainty mass unit", ["g", "kg"], index=0)
     u_mass_sol = u_mass_sol_val * (1000.0 if u_mass_unit == "kg" else 1.0)
 
     sol_density_gmL = parse_float(st.text_input("Solution density [g/mL]", "1.00"))
@@ -99,9 +86,9 @@ else:
     vol_L = sol_mass_g / (sol_density_gmL * 1000.0)
     u_vol_L = u_mass_sol / (sol_density_gmL * 1000.0)
 
-# --- Mode 1: Forward ---
-if mode == "By Molecule Concentration":
-    n_solutes = st.number_input("Number of different solutes", min_value=1, value=2, step=1)
+# ---------- Mode 1: Forward ----------
+if mode == "Forward: By Molecule Concentration":
+    n_solutes = st.number_input("Number of solutes", min_value=1, value=2, step=1)
     results = []
     element_mgL = defaultdict(float)
 
@@ -148,68 +135,27 @@ if mode == "By Molecule Concentration":
             st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
 
         if element_mgL:
-            df_elements = pd.DataFrame(
-                sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
-                columns=["Element", "Concentration (mg/L)"]
-            )
+            df_elements = pd.DataFrame(sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
+                                       columns=["Element", "Concentration (mg/L)"])
             df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
             st.markdown("### Element concentrations in solution (mg/L)")
             st.dataframe(df_elements, use_container_width=True)
 
-# --- Mode 2: Reverse ---
-if mode == "By Element Concentration":
-    # Step 1: Get solute list
+# ---------- Mode 2: Reverse ----------
+if mode == "Reverse: By Element Concentration":
+    # Step 1: Get solutes
     n_solutes = st.number_input("Number of available solutes", min_value=1, value=2, step=1)
     molecules = []
     for i in range(int(n_solutes)):
-        sc1, sc2 = st.columns([2, 1])
-        with sc1:
+        col1, col2 = st.columns([2, 1])
+        with col1:
             formula = st.text_input(f"Solute {i+1} formula", key=f"sol_formula_{i}")
-        with sc2:
-            purity_pct = parse_float(
-                st.text_input(
-                    f"Purity % for {formula or f'Solute {i+1}'}",
-                    "100.0",
-                    key=f"pur_{i}"
-                )
-            )
+        with col2:
+            purity_pct = parse_float(st.text_input(f"Purity [%] for {formula or f'Solute {i+1}'}", "100.0", key=f"pur_{i}"))
         if formula:
             molecules.append((formula, purity_pct/100.0))
 
     if molecules:
-        # Step 2: Collect unique element names from all solutes
+        # Step 2: Unique element list
         unique_elements = set()
-        for formula, _ in molecules:
-            try:
-                unique_elements.update(Formula(formula).atoms.keys())
-            except Exception:
-                pass
-        unique_elements = sorted(unique_elements)
-
-       # Step 3: Get target concentrations for each element
-        st.subheader("Target element concentrations")
-        element_targets = {}
-        for el in unique_elements:
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                conc_value = parse_float(
-                    st.text_input(f"{el} target concentration", "0.0", key=f"el_target_val_{el}")
-                )
-            with col2:
-                conc_unit = st.selectbox(
-                    "Unit",
-                    ["mg/L", "mol/L"],
-                    key=f"el_target_unit_{el}"
-                )
-
-            # Convert everything internally to mg/L
-            if conc_unit == "mol/L":
-                conc_value = molL_to_mgL(conc_value, Formula(el).mass)
-            element_targets[el] = conc_value
-
-        # Step 4: Compute masses
-        if st.button("Calculate required solute masses"):
-            masses_gL = solve_masses(element_targets, molecules)
-            st.subheader("Required solute masses")
-            for (formula, _), mass in zip(molecules, masses_gL):
-                st.write(f"- **{formula}**: {mass:.5f} g/L (total for target composition)")
+        for formula, _ in molecules
