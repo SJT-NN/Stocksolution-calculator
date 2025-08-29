@@ -13,18 +13,16 @@ def mass_required(M, conc, vol_L, purity):
     pure_mass = M * conc * vol_L
     return pure_mass / purity
 
-# --- Uncertainty propagation ---
-def propagated_uncertainty(M, conc, u_conc, vol_L, u_vol_L,
-                           purity, u_purity, u_scale):
-    dm_dc = (M * vol_L) / purity
-    dm_dV = (M * conc) / purity
-    dm_dp = -(M * conc * vol_L) / (purity ** 2)
-
+# --- Uncertainty of concentration from uncertainties in mass, vol, purity ---
+def conc_uncertainty(M, m_weighed, u_mass, vol_L, u_vol_L, purity, u_purity):
+    # c = (m * p) / (M * V)
+    dc_dm = purity / (M * vol_L)
+    dc_dV = -(m_weighed * purity) / (M * vol_L**2)
+    dc_dp = m_weighed / (M * vol_L)
     return math.sqrt(
-        (dm_dc * u_conc) ** 2 +
-        (dm_dV * u_vol_L) ** 2 +
-        (dm_dp * u_purity) ** 2 +
-        (u_scale) ** 2
+        (dc_dm * u_mass) ** 2 +
+        (dc_dV * u_vol_L) ** 2 +
+        (dc_dp * u_purity) ** 2
     )
 
 # --- Safe float parser ---
@@ -38,8 +36,8 @@ def parse_float(text, default=0.0):
 st.set_page_config(page_title="Solution Prep Calculator", page_icon="🧪")
 st.title("🧪 Solution Preparation Calculator")
 st.markdown(
-    "Calculate how much to weigh for a target concentration & volume, "
-    "with uncertainty from concentration, volume, purity, and scale only."
+    "Enter your target solution parameters — get the required mass **and** "
+    "the uncertainty of the resulting concentration."
 )
 
 # Formula
@@ -50,7 +48,8 @@ col1, col2 = st.columns(2)
 with col1:
     conc = parse_float(st.text_input("Target concentration [mol/L]", "0.1"))
 with col2:
-    u_conc = parse_float(st.text_input("Concentration uncertainty [mol/L]", "0.0005"))
+    # Uncertainty in target conc no longer needed for final calc, kept for info
+    u_conc_input = parse_float(st.text_input("Target conc uncertainty [mol/L]", "0.0005"))
 
 # Volume and units
 col3, col4 = st.columns(2)
@@ -80,13 +79,14 @@ u_purity = u_purity_percent / 100.0
 if formula and conc > 0 and vol_L > 0 and purity > 0:
     M = molar_mass(formula)
     m_req = mass_required(M, conc, vol_L, purity)
-    u_m_req = propagated_uncertainty(M, conc, u_conc, vol_L, u_vol_L,
-                                     purity, u_purity, u_scale)
+    u_c_solution = conc_uncertainty(M, m_req, u_scale, vol_L, u_vol_L, purity, u_purity)
 
     st.subheader("Results")
     st.write(f"**Molar mass:** {M:.5f} g/mol")
-    st.write(f"**Required mass to weigh:** {m_req:.5f} ± {u_m_req:.5f} g")
+    st.write(f"**Required mass to weigh:** {m_req:.5f} g")
+    st.write(f"**Uncertainty of resulting concentration:** ± {u_c_solution:.6f} mol/L")
     st.caption(
-        "Uncertainty includes concentration, volume, purity, and scale — "
-        "atomic weight uncertainty excluded."
+        "Concentration uncertainty includes contributions from weighing, "
+        "volume, and purity uncertainties — target conc uncertainty input "
+        "is ignored in this output."
     )
