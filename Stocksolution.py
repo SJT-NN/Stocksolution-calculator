@@ -95,6 +95,5 @@ if formula and conc > 0 and vol_L > 0 and purity > 0:
     st.write(f"**Relative concentration uncertainty:** {rel_u_c_solution:.3f} %")
     st.caption(
         "Concentration uncertainty includes contributions from weighing, "
-        "volume, and purity uncertainties — target conc uncertainty input "
-        "is ignored in this output."
+        "volume, and purity uncertainties")
     
