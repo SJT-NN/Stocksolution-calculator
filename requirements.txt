@@ -3,3 +3,5 @@ pubchempy
 numpy
 rich
 molmass
+pandas
+collections
