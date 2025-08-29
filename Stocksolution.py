@@ -3,6 +3,7 @@ import math
 import streamlit as st
 from molmass import Formula
 from collections import defaultdict
+import pandas as pd
 
 # --- Helpers ---
 def molar_mass_multi(formulas_str):
@@ -90,7 +91,6 @@ else:
 n_solutes = st.number_input("Number of different solutes", min_value=1, value=2, step=1)
 
 results = []
-# Element concentration accumulator
 element_mgL = defaultdict(float)
 
 # Data entry loop
@@ -141,5 +141,10 @@ if results:
     if element_mgL:
         st.markdown("### Element concentrations in solution (mg/L)")
         st.write("Each value sums contributions from all solutes containing that element.")
-        for sym, val in sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True):
-            st.write(f"- {sym}: {val:.3f} mg/L")
+
+        # Convert dict to DataFrame for table
+        df_elements = pd.DataFrame(
+            sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
+            columns=["Element", "Concentration (mg/L)"]
+        )
+        st.table(df_elements)
