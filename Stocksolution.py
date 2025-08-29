@@ -82,6 +82,26 @@ for i in range(int(n_solutes)):
 
 # ---------- Output ----------
 if results:
+    if element_mgL:
+        st.markdown("### 💡 Element concentrations in solution (mg/L)")
+        df_elements = pd.DataFrame(
+            sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
+            columns=["Element", "Concentration (mg/L)"]
+        )
+        df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
+        st.dataframe(df_elements, use_container_width=True)
+
+    # Keep component‑wise details below
+    st.subheader("Component‑wise Results")
+    for r in results:
+        st.markdown(f"**{r['formula']}**")
+        st.write(f"- Molar mass: {r['M']:.5f} g/mol")
+        st.write(f"- Required mass: {r['m_req']:.5f} g")
+        st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
+        st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
+
+
+if results:
     st.subheader("Component‑wise Results")
     for r in results:
         st.markdown(f"**{r['formula']}**")
