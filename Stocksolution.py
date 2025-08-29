@@ -2,6 +2,7 @@
 import math
 import streamlit as st
 from molmass import Formula
+from collections import defaultdict
 
 # --- Helpers ---
 def molar_mass_multi(formulas_str):
@@ -92,6 +93,9 @@ results = []
 total_conc_molL = 0.0
 total_unc_sq = 0.0
 
+# NEW: element-wise concentration accumulator (mg/L)
+element_mgL = defaultdict(float)
+
 for i in range(int(n_solutes)):
     st.markdown(f"### Solute {i+1}")
     formula = st.text_input(f"Formula {i+1}", "NaCl", key=f"f_{i}")
@@ -109,6 +113,7 @@ for i in range(int(n_solutes)):
         m_req = mass_required_molar(M, conc_molL, vol_L, purity)
         u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
 
+        # Record per-solute outputs
         results.append({
             "formula": formula,
             "M": M,
@@ -119,6 +124,15 @@ for i in range(int(n_solutes)):
         })
         total_conc_molL += conc_molL
         total_unc_sq += u_c**2
+
+        # Accumulate element-wise mg/L from this solute
+        try:
+            atoms = Formula(formula).atoms  # dict like {'Na':1, 'Cl':1}
+            for sym, count in atoms.items():
+                # atomic mass via Formula(sym).mass (g/mol) -> mg/L = c * n * M_e * 1000
+                element_mgL[sym] += conc_molL * count * Formula(sym).mass * 1000.0
+        except Exception:
+            pass  # If parsing fails, skip element breakdown for this solute
 
 # --- Output ---
 if results:
@@ -133,3 +147,10 @@ if results:
     st.subheader("Overall Solution")
     st.write(f"**Total concentration:** {total_conc_molL:.6f} mol/L")
     st.write(f"**Combined uncertainty (RSS):** ± {math.sqrt(total_unc_sq):.6f} mol/L")
+
+    # NEW: Element-wise concentration summary (mg/L)
+    if element_mgL:
+        st.markdown("**Element concentrations (mg/L):**")
+        # Sort by descending mg/L for readability
+        for sym, val in sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True):
+            st.write(f"- {sym}: {val:.3f} mg/L")
