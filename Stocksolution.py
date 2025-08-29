@@ -1,7 +1,7 @@
 import streamlit as st
 import pubchempy as pcp
-from rdkit import Chem
-from rdkit.Chem import Draw
+#from rdkit import Chem
+#from rdkit.Chem import Draw
 import re
 import math
 
