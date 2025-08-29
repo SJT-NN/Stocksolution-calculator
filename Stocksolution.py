@@ -174,4 +174,34 @@ if mode == "By Element Concentration":
                 )
             )
         if formula:
-            molecules.append((formula,
+            molecules.append((formula, purity_pct/100.0))
+
+    if molecules:
+        # Step 2: Collect unique element names from all solutes
+        unique_elements = set()
+        for formula, _ in molecules:
+            try:
+                unique_elements.update(Formula(formula).atoms.keys())
+            except Exception:
+                pass
+        unique_elements = sorted(unique_elements)
+
+        # Step 3: Get target concentrations for each element
+        st.subheader("Target element concentrations")
+        element_targets = {}
+        for el in unique_elements:
+            val = parse_float(
+                st.text_input(
+                    f"{el} target concentration (mg/L)",
+                    "0.0",
+                    key=f"el_target_{el}"
+                )
+            )
+            element_targets[el] = val
+
+        # Step 4: Compute masses
+        if st.button("Calculate required solute masses"):
+            masses_gL = solve_masses(element_targets, molecules)
+            st.subheader("Required solute masses")
+            for (formula, _), mass in zip(molecules, masses_gL):
+                st.write(f"- **{formula}**: {mass:.5f} g/L (total for target composition)")
