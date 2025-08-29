@@ -5,6 +5,13 @@ from rdkit.Chem import Draw
 import re
 import math
 
+try:
+    from rdkit import Chem
+    from rdkit.Chem import Descriptors
+    rdkit_available = True
+except ImportError:
+    rdkit_available = False
+
 # --- Atomic weights (g/mol) with uncertainties ---
 atomic_weights = {
     "H": (1.00794, 0.00007),
