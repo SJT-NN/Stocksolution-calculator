@@ -32,7 +32,7 @@ def propagated_uncertainty(M, u_M, conc, u_conc, vol, u_vol):
     )
 
 # --- Streamlit UI ---
-st.set_page_config(page_title="Solution Prep Calculator", page_icon="🧪")
+#st.set_page_config(page_title="Solution Prep Calculator", page_icon="🧪")
 st.title("🧪 Solution Preparation Calculator")
 st.markdown("Enter formula, target concentration, and volume to compute required mass — including uncertainty from all three inputs.")
 
