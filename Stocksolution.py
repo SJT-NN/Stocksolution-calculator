@@ -45,6 +45,7 @@ u_vol_L = u_vol_value / 1000.0 if u_vol_unit == "mL" else u_vol_value
 n_solutes = st.number_input("Number of solutes", min_value=1, value=2, step=1)
 results = []
 element_mgL_total = defaultdict(float)
+st.write("Sanity check elemental concentration", dict(element_mgL_total))
 
 for i in range(int(n_solutes)):
     st.markdown(f"### Solute {i+1}")
