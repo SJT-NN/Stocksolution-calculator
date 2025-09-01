@@ -222,7 +222,7 @@ if results:
        
 
     # Component-wise details
-st.subheader("Component‑wise Results")
+#st.subheader("Component‑wise Results")
 
 for r in results:
     # Table 1: Parameters for this solute
@@ -238,16 +238,16 @@ for r in results:
         ["Uncertainty realised (mol/L)", f"± {r['u_c_realised']:.6f}"]
     ], columns=["Parameter", "Value"])
 
-    st.markdown(f"**{r['formula']}**")
-    st.table(df_solute)
+ #   st.markdown(f"**{r['formula']}**")
+  #  st.table(df_solute)
 
     # Table 2: Elemental breakdown
     df_elements = pd.DataFrame([
         [elem, f"{r['elements_target'][elem]:.3f}", f"{r['elements_realised'][elem]:.3f}"]
         for elem in r["elements_target"]
     ], columns=["Element", "Target (mg/L)", "Realised (mg/L)"])
-    st.caption("Elemental breakdown")
-    st.table(df_elements)
+   # st.caption("Elemental breakdown")
+    #st.table(df_elements)
 
 # --- Combined summary table ---
 st.subheader("Summary Table")
@@ -287,23 +287,6 @@ for r in results:
             
 df_all = pd.DataFrame(table_rows)
 
-# Preview table
-#st.markdown("### 📊 Component‑wise Results Preview")
-#st.dataframe(
-#    df_all.style.format({
-#        "Molar mass (g/mol)": "{:.6f}",
-#        "Target mass (g)": "{:.6f}",
-#        "Actual mass (g)": "{:.6f}",
-#        "Target conc (mol/L)": "{:.6f}",
-#        "Actual conc (mol/L)": "{:.6f}",
-#        "Target conc (mg/L)": "{:.6f}",
-#        "Actual conc (mg/L)": "{:.6f}",
-#        "Uncertainty (mol/L)": "± {:.6f}",
-#        "Element conc target (mg/L)": "{:.6f}",
-#        "Element conc realised (mg/L)": "{:.6f}"
-#        }),
-#        use_container_width=True)
-
 # Ensure dicts exist to avoid .keys() errors
 element_mgL_target = element_mgL_target if isinstance(element_mgL_target, dict) else {}
 element_mgL_realised = element_mgL_realised if isinstance(element_mgL_realised, dict) else {}
@@ -324,8 +307,34 @@ with pd.ExcelWriter(output, engine="openpyxl") as writer:
         "Target conc (mg/L)": [element_mgL_target.get(e, 0.0) for e in elements],
         "Realised conc (mg/L)": [element_mgL_realised.get(e, 0.0) for e in elements]
     }).sort_values("Realised conc (mg/L)", ascending=False)
-
     df_totals.to_excel(writer, index=False, sheet_name="Element Totals")
+
+    # One sheet per solute
+    for idx, r in enumerate(results, start=1):
+        # Parameters for this solute
+        df_solute = pd.DataFrame([
+            ["Molar mass (g/mol)", f"{r['M']:.5f}"],
+            ["Target mass (g)", f"{r['m_req']:.5f}"],
+            ["Actual mass (g)", f"{r['actual_mass_g']:.5f}"],
+            ["Target conc (mol/L)", f"{r['conc_molL']:.6f}"],
+            ["Target conc (mg/L)", f"{r['conc_mgL']:.3f}"],
+            ["Realised conc (mol/L)", f"{r['realised_conc_molL']:.6f}"],
+            ["Realised conc (mg/L)", f"{r['realised_conc_mgL']:.3f}"],
+            ["Uncertainty target (mol/L)", f"± {r['u_c']:.6f}"],
+            ["Uncertainty realised (mol/L)", f"± {r['u_c_realised']:.6f}"]
+        ], columns=["Parameter", "Value"])
+
+        # Elemental breakdown
+        df_elements = pd.DataFrame([
+            [elem, f"{r['elements_target'][elem]:.3f}", f"{r['elements_realised'][elem]:.3f}"]
+            for elem in r["elements_target"]
+        ], columns=["Element", "Target (mg/L)", "Realised (mg/L)"])
+
+        # Write both tables to the same sheet, one below the other
+        sheet_name = f"Solute {idx} - {r['formula']}"
+        df_solute.to_excel(writer, index=False, sheet_name=sheet_name, startrow=0)
+        df_elements.to_excel(writer, index=False, sheet_name=sheet_name, startrow=len(df_solute) + 2)
+
 
 # Download button
 st.download_button(
