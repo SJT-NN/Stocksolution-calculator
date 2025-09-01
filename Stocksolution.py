@@ -102,25 +102,23 @@ for i in range(int(n_solutes)):
         })
 
 # ---------- Output ----------
-if results:
-    if element_mgL:
-        st.markdown("### 💡 Element concentrations in solution (mg/L)")
-        df_elements = pd.DataFrame(
-            sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
-            columns=["Element", "Concentration (mg/L)"]
-        )
-        df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
-        st.dataframe(df_elements, use_container_width=True)
+# ---------- Output ----------
+        if results:
+            table_rows = []
+            for r in results:
+                for elem, val in r["elements"].items():
+                    table_rows.append({
+                        "Formula": r["formula"],
+                        "Molar mass (g/mol)": f"{r['M']:.5f}",
+                        "Required mass (g)": f"{r['m_req']:.5f}",
+                        "Target conc (mol/L)": f"{r['conc_molL']:.6f}",
+                        "Target conc (mg/L)": f"{r['conc_mgL']:.3f}",
+                        "Uncertainty (mol/L)": f"± {r['u_c']:.6f}",
+                        "Element": elem,
+                        "Element conc (mg/L)": f"{val:.3f}"
+                    })
 
-    st.subheader("Component‑wise Results")
-    for r in results:
-        st.markdown(f"**{r['formula']}**")
-        st.write(f"- Molar mass: {r['M']:.5f} g/mol")
-        st.write(f"- Required mass: {r['m_req']:.5f} g")
-        st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
-        st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
+            df_all = pd.DataFrame(table_rows)
 
-        if r["elements"]:
-            st.write("  **Elemental breakdown (mg/L):**")
-            for elem, val in r["elements"].items():
-                st.write(f"    - {elem}: {val:.3f}")
+            st.markdown("### 📊 Full Solution Preparation Table")
+            st.dataframe(df_all, use_container_width=True)
