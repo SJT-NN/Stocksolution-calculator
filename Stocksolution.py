@@ -32,11 +32,7 @@ def conc_uncertainty_component(M, m_weighed, u_mass, vol_L, u_vol_L, purity, u_p
 
 def safe_sheet_name(name, max_len=31):
     # Remove invalid characters
-    name = re.sub(r'[\*\?\/\\
-
-\[\]
-
-\:]', '.', name)
+    name = re.sub(r'[\*\?\/\\\[\]\:]', '.', name)
     # Trim to Excel's max length
     return name[:max_len]
 
