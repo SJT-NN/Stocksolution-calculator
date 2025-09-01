@@ -201,13 +201,13 @@ if results:
             sorted(element_mgL_target.items(), key=lambda kv: kv[1], reverse=True),
             columns=["Element", "Target conc (mg/L)"]
         )
-        df_elements_target["Target conc (mg/L)"] = df_elements_target["Target conc (mg/L)"].map(lambda x: f"{x:.3f}")
+        df_elements_target["Target conc (mg/L)"] = df_elements_target["Target conc (mg/L)"].map(lambda x: f"{x:.5f}")
 
         df_elements_realised = pd.DataFrame(
             sorted(element_mgL_realised.items(), key=lambda kv: kv[1], reverse=True),
             columns=["Element", "Realised conc (mg/L)"]
         )
-        df_elements_realised["Realised conc (mg/L)"] = df_elements_realised["Realised conc (mg/L)"].map(lambda x: f"{x:.3f}")
+        df_elements_realised["Realised conc (mg/L)"] = df_elements_realised["Realised conc (mg/L)"].map(lambda x: f"{x:.5f}")
 
         with col1:
             st.caption("Target")
@@ -219,21 +219,27 @@ if results:
     # Component-wise details
     st.subheader("Component‑wise Results")
     for r in results:
-        st.markdown(f"**{r['formula']}**")
-        st.write(f"- Molar mass: {r['M']:.5f} g/mol")
-        st.write(f"- Target mass: {r['m_req']:.5f} g")
-        st.write(f"- Actual mass: {r['actual_mass_g']:.5f} g")
-        st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
-        st.write(f"- Realised concentration: {r['realised_conc_molL']:.6f} mol/L  ({r['realised_conc_mgL']:.3f} mg/L)")
-        st.write(f"- Uncertainty in concentration (target): ± {r['u_c']:.6f} mol/L")
-        st.write(f"- Uncertainty in concentration (realised): ± {r['u_c_realised']:.6f} mol/L")
-        
+        # Table 1: Parameters for this solute
+        df_solute = pd.DataFrame([
+            ["Molar mass (g/mol)", f"{r['M']:.5f}"],
+            ["Target mass (g)", f"{r['m_req']:.5f}"],
+            ["Actual mass (g)", f"{r['actual_mass_g']:.5f}"],
+            ["Target conc (mol/L)", f"{r['conc_molL']:.5f}"],
+            ["Target conc (mg/L)", f"{r['conc_mgL']:.5f}"],
+            ["Realised conc (mol/L)", f"{r['realised_conc_molL']:.5f}"],
+            ["Realised conc (mg/L)", f"{r['realised_conc_mgL']:.5f}"],
+            ["Uncertainty target (mol/L)", f"± {r['u_c']:.5f}"],
+            ["Uncertainty realised (mol/L)", f"± {r['u_c_realised']:.5f}"]
+        ], columns=["Parameter", "Value"])
+
+    st.markdown(f"**{r['formula']}**")
+    st.table(df_solute)
         if r["elements_target"]:
             st.write("  **Elemental breakdown (mg/L):**")
             for elem in r["elements_target"]:
                 tval = r["elements_target"][elem]
                 rval = r["elements_realised"][elem]
-                st.write(f"    - {elem}: target {tval:.3f}, realised {rval:.3f}")
+                st.write(f"    - {elem}: target {tval:.6f}, realised {rval:.6f}")
 
     # Flatten results into rows for export/preview
     table_rows = []
