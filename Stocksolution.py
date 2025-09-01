@@ -122,7 +122,10 @@ for i in range(int(n_solutes)):
     st.markdown(f"### Solute {i+1}")
     defaults = defaults_list[i] if i < len(defaults_list) else {}
 
-    formula = st.text_input(f"Formula {i+1}", defaults.get("formula", "NaCl"), key=f"f_{i}")
+    # Allow '*' in formula but ignore for calculations
+    raw_formula = st.text_input(f"Formula {i+1}", defaults.get("formula", "NaCl"), key=f"f_{i}")
+    formula = raw_formula.replace("*", "")
+
     conc_val = parse_float(st.text_input(f"Target conc {i+1}", str(defaults.get("conc_val", 0.1)), key=f"tc_{i}"))
     conc_unit = st.selectbox(
         f"Concentration unit {i+1}",
@@ -166,7 +169,7 @@ for i in range(int(n_solutes)):
             element_breakdown[sym] = elem_conc_mgL
 
         results.append({
-            "formula": formula,
+            "formula": raw_formula,  # keep original with '*' if present
             "M": M,
             "conc_molL": conc_molL,
             "conc_mgL": conc_mgL_val,
