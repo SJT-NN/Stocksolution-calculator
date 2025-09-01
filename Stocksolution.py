@@ -195,26 +195,31 @@ if results:
     # Element totals across all solutes
     if element_mgL_target:
         st.markdown("### 💡 Element concentrations in solution (mg/L)")
-        col1, col2 = st.columns(2)
 
+        # Build both DataFrames
         df_elements_target = pd.DataFrame(
-            sorted(element_mgL_target.items(), key=lambda kv: kv[1], reverse=True),
+            sorted(element_mgL_target.items(), key=lambda kv: kv[0]),  # sort by element name
             columns=["Element", "Target conc (mg/L)"]
         )
-        df_elements_target["Target conc (mg/L)"] = df_elements_target["Target conc (mg/L)"].map(lambda x: f"{x:.5f}")
-
         df_elements_realised = pd.DataFrame(
-            sorted(element_mgL_realised.items(), key=lambda kv: kv[1], reverse=True),
+            sorted(element_mgL_realised.items(), key=lambda kv: kv[0]),
             columns=["Element", "Realised conc (mg/L)"]
         )
-        df_elements_realised["Realised conc (mg/L)"] = df_elements_realised["Realised conc (mg/L)"].map(lambda x: f"{x:.5f}")
 
-        with col1:
-            st.caption("Target")
-            st.dataframe(df_elements_target, use_container_width=True)
-        with col2:
-            st.caption("Realised")
-            st.dataframe(df_elements_realised, use_container_width=True)
+        # Merge into one DataFrame on "Element"
+        df_elements = pd.merge(df_elements_target, df_elements_realised, on="Element", how="outer")
+
+        # Sort by Target conc (numeric) descending
+        df_elements = df_elements.sort_values(by="Target conc (mg/L)", ascending=False)
+
+        # Format numeric columns to 5 decimal places
+        for col in ["Target conc (mg/L)", "Realised conc (mg/L)"]:
+            df_elements[col] = df_elements[col].map(lambda x: f"{x:.5f}")
+
+        # Show single table
+        st.dataframe(df_elements, use_container_width=True)
+
+       
 
     # Component-wise details
 st.subheader("Component‑wise Results")
