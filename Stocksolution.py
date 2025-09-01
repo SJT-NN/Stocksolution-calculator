@@ -83,7 +83,7 @@ for i in range(int(n_solutes)):
 # ---------- Output ----------
 if results:
     if element_mgL:
-        st.markdown("### 💡 Element concentrations in solution (mg/L)")
+        st.markdown("### 💡 Total Element concentrations in solution (mg/L)")
         df_elements = pd.DataFrame(
             sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
             columns=["Element", "Concentration (mg/L)"]
@@ -99,3 +99,20 @@ if results:
         st.write(f"- Required mass: {r['m_req']:.5f} g")
         st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
         st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
+
+        # Per-solute elemental breakdown
+        try:
+            atoms = Formula(r['formula']).atoms
+            per_solute_elements = {}
+            for sym, count in atoms.items():
+                per_solute_elements[sym] = r['conc_molL'] * count * Formula(sym).mass * 1000.0
+
+            df_per_solute = pd.DataFrame(
+                sorted(per_solute_elements.items(), key=lambda kv: kv[1], reverse=True),
+                columns=["Element", "Concentration (mg/L)"]
+            )
+            df_per_solute["Concentration (mg/L)"] = df_per_solute["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
+            st.markdown("Elemental contribution from this solute:")
+            st.dataframe(df_per_solute, use_container_width=True)
+        except Exception as e:
+            st.error(f"Could not calculate elemental breakdown for {r['formula']}: {e}")
