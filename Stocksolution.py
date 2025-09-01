@@ -66,7 +66,7 @@ standard_solutions = [
         "formula": "KNO3",
         "conc_val": 1000,
         "conc_unit": "mg/L",
-        "purity_pct": 99.5,
+        "purity_pct": 100,
         "u_purity_pct": 0.1,
         "u_mass_g": 0.001
     }
