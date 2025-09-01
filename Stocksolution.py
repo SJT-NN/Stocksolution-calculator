@@ -64,38 +64,30 @@ for i in range(int(n_solutes)):
         m_req = mass_required_molar(M, conc_molL, vol_L, purity)
         u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
 
-                # Elemental contributions from compound mg/L × mass fraction
+        # --- Elemental contributions for this solute ---
+        element_breakdown = {}
         try:
             atoms = Formula(formula).atoms
             for sym, count in atoms.items():
                 frac_mass = (Formula(sym).mass * count) / M
-                element_mgL[sym] += conc_mgL_val * frac_mass
+                elem_conc_mgL = conc_mgL_val * frac_mass
+                element_mgL[sym] += elem_conc_mgL  # total across all solutes
+                element_breakdown[sym] = elem_conc_mgL  # store for this solute
         except Exception:
             pass
 
-
-        # Store compound-level results
+        # --- Store compound-level results + element breakdown ---
         results.append({
             "formula": formula,
             "M": M,
             "conc_molL": conc_molL,
             "conc_mgL": conc_mgL_val,
             "m_req": m_req,
-            "u_c": u_c
+            "u_c": u_c,
+            "elements": element_breakdown  # NEW
         })
 
-
 # ---------- Output ----------
-if results:
-    # Elemental table
-    if element_mgL:
-        st.markdown("### 💡 Element concentrations in solution (mg/L)")
-        df_elements = pd.DataFrame(
-            sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
-            columns=["Element", "Concentration (mg/L)"]
-        )
-        df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
-        st.dataframe(df_elements, use_container_width=True)
 
     # Component-wise details
     st.subheader("Component‑wise Results")
@@ -105,4 +97,9 @@ if results:
         st.write(f"- Required mass: {r['m_req']:.5f} g")
         st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
         st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
+
+        if r["elements"]:
+            st.write("  **Elemental breakdown (mg/L):**")
+            for elem, val in r["elements"].items():
+                st.write(f"    - {elem}: {val:.3f}")
 
