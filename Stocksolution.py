@@ -22,7 +22,7 @@ if st.button("Calculate"):
 
         # Element breakdown
         element_conc = defaultdict(float)
-        for elem, count in f.atoms.items():
+        for elem, count in f.composition():
             atomic_mass = Formula(elem).mass  # g/mol
             # mg/L = (mol/L * count * atomic_mass * 1000)
             element_conc[elem] = concentration * count * atomic_mass * 1000
