@@ -240,21 +240,17 @@ if results:
     for r in results:
         for elem in r["elements_target"]:
             table_rows.append({
-                "Formula": r["formula"],
-                "Molar mass (g/mol)": r["M"],
-                "Target mass (g)": r["m_req"],
-                "Actual mass (g)": r["actual_mass_g"],
-                "Target conc (mol/L)": r["conc_molL"],
-                "Actual conc (mol/L)": r["realised_conc_molL"],
-                "Target conc (mg/L)": r["conc_mgL"],
-                "Actual conc (mg/L)": r["realised_conc_mgL"],
-                "Uncertainty (target)(mol/L)": r["u_c"],
-                "Uncertainty (realised) (mol/L)": r["u_c_realised"],
-                "Element": elem,
-                "Element conc target (mg/L)": r["elements_target"][elem],
-                "Element conc realised (mg/L)": r["elements_realised"][elem]
-            })
-
+                "Formula": raw_formula,
+                "Molar mass (g/mol)": M,
+                "Target conc (mol/L)": conc_molL,
+                "Target conc (mg/L)": conc_mgL_val,
+                "Mass required (g)": m_req,
+                "Uncertainty target (mol/L)": u_c,
+                "Actual mass (g)": actual_mass_g,
+                "Realised conc (mol/L)": realised_conc_molL,
+                "Realised conc (mg/L)": realised_conc_mgL,
+                "Uncertainty realised (mol/L)": u_c_realised})
+            
     df_all = pd.DataFrame(table_rows)
 
     # Preview table
@@ -275,23 +271,34 @@ if results:
         use_container_width=True
     )
 
-    # Export to Excel
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df_all.to_excel(writer, index=False, sheet_name="Results")
-        # Optional: add element totals sheet
-        df_totals = pd.DataFrame({
-            "Element": list(sorted(set(list(element_mgL_target.keys()) | set(element_mgL_realised.keys())))),
-        })
-        df_totals["Target conc (mg/L)"] = df_totals["Element"].map(lambda e: element_mgL_target.get(e, 0.0))
-        df_totals["Realised conc (mg/L)"] = df_totals["Element"].map(lambda e: element_mgL_realised.get(e, 0.0))
-        df_totals = df_totals.sort_values("Realised conc (mg/L)", ascending=False)
-        df_totals.to_excel(writer, index=False, sheet_name="Element Totals")
+# Ensure dicts exist to avoid .keys() errors
+element_mgL_target = element_mgL_target if isinstance(element_mgL_target, dict) else {}
+element_mgL_realised = element_mgL_realised if isinstance(element_mgL_realised, dict) else {}
 
-    st.download_button(
-        label="💾 Download results as Excel",
-        data=output.getvalue(),
-        file_name="solution_results.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+# Build main DataFrame with uncertainties
+df_all = pd.DataFrame(table_rows)  # table_rows should now include u_c and u_c_realised
+
+# Export to Excel
+output = BytesIO()
+with pd.ExcelWriter(output, engine="openpyxl") as writer:
+    # Main results sheet
+    df_all.to_excel(writer, index=False, sheet_name="Results")
+
+    # Element totals sheet
+    elements = sorted(set(element_mgL_target.keys()) | set(element_mgL_realised.keys()))
+    df_totals = pd.DataFrame({
+        "Element": elements,
+        "Target conc (mg/L)": [element_mgL_target.get(e, 0.0) for e in elements],
+        "Realised conc (mg/L)": [element_mgL_realised.get(e, 0.0) for e in elements]
+    }).sort_values("Realised conc (mg/L)", ascending=False)
+
+    df_totals.to_excel(writer, index=False, sheet_name="Element Totals")
+
+# Download button
+st.download_button(
+    label="💾 Download results as Excel",
+    data=output.getvalue(),
+    file_name="solution_results.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
     
