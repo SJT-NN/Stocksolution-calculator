@@ -75,7 +75,7 @@ for i in range(int(n_solutes)):
             })
 
             # ✅ Elemental contributions directly from molar concentration
-            atoms = dict(f.atoms)  # ensure it's a real dict
+            atoms = f.atoms  # ensure it's a real dict
             for sym, count in atoms.items():
                 atomic_mass = Formula(sym).mass  # g/mol
                 element_mgL[sym] += conc_molL * count * atomic_mass * 1000.0
