@@ -59,7 +59,7 @@ standard_solutions = [
                 "formula": "NaCl",
                 "conc_val": 0.1000,          # M
                 "conc_unit": "mol/L",
-                "purity_pct": 100,           # corrected from 1000
+                "purity_pct": 100,
                 "u_purity_pct": 0.0,
                 "u_mass_g": 0.0005
             }
@@ -68,64 +68,22 @@ standard_solutions = [
     {
         "name": "Q26xx",
         "components": [
-            {
-                "formula": "NaCl",
-                "conc_val": 16.48982*1000,
-                "conc_unit": "mg/L",
-                "purity_pct": 100,
-                "u_purity_pct": 0.0,
-                "u_mass_g": 0.0005
-            },
-            {
-                "formula": "NaBr",
-                "conc_val": 5.796375*1000,
-                "conc_unit": "mg/L",
-                "purity_pct": 100,
-                "u_purity_pct": 0.0,
-                "u_mass_g": 0.0005
-            },
-            {
-                "formula": "LiOH*H2O",
-                "conc_val": 9.06946*1000,
-                "conc_unit": "mg/L",
-                "purity_pct": 100,
-                "u_purity_pct": 0.0,
-                "u_mass_g": 0.0005
-            },
-            {
-                "formula": "H3BO3",
-                "conc_val": 5.72034*1000,
-                "conc_unit": "mg/L",
-                "purity_pct": 100,
-                "u_purity_pct": 0.0,
-                "u_mass_g": 0.0005
-            }
+            {"formula": "NaCl", "conc_val": 16.48982*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005},
+            {"formula": "NaBr", "conc_val": 5.796375*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005},
+            {"formula": "LiOH*H2O", "conc_val": 9.06946*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005},
+            {"formula": "H3BO3", "conc_val": 5.72034*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
         ]
     },
     {
         "name": "Q31xx",
         "components": [
-            {
-                "formula": "NaH2PO4",
-                "conc_val": 25270,
-                "conc_unit": "mg/L",
-                "purity_pct": 100,
-                "u_purity_pct": 0.0,
-                "u_mass_g": 0.0005
-            }
+            {"formula": "NaH2PO4", "conc_val": 25270, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
         ]
     },
     {
         "name": "Q35xx",
         "components": [
-            {
-                "formula": "NH4Cl",
-                "conc_val": 114570,
-                "conc_unit": "mg/L",
-                "purity_pct": 100,
-                "u_purity_pct": 0.0,
-                "u_mass_g": 0.0005
-            }
+            {"formula": "NH4Cl", "conc_val": 114570, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
         ]
     }
 ]
@@ -150,13 +108,13 @@ n_solutes = st.number_input(
 
 # ---------- Data processing ----------
 results = []
-element_mgL = defaultdict(float)
+element_mgL_target = defaultdict(float)
+element_mgL_realised = defaultdict(float)
 
 for i in range(int(n_solutes)):
     st.markdown(f"### Solute {i+1}")
     defaults = defaults_list[i] if i < len(defaults_list) else {}
 
-    # Allow '*' in formula but ignore for calculations
     raw_formula = st.text_input(f"Formula {i+1}", defaults.get("formula", "NaCl"), key=f"f_{i}")
     formula = raw_formula.replace("*", "")
 
@@ -179,9 +137,19 @@ for i in range(int(n_solutes)):
         purity = purity_pct / 100.0
         u_purity = u_purity_pct / 100.0
         m_req = mass_required_molar(M, conc_molL, vol_L, purity)
+
+        # NEW: Actual weighed mass input
+        actual_mass_g = parse_float(
+            st.text_input(f"Actual weighed mass [g] for solute {i+1}", f"{m_req:.5f}", key=f"am_{i}")
+        )
+
+        # Realised concentrations
+        realised_conc_molL = (actual_mass_g * purity) / (M * vol_L)
+        realised_conc_mgL = molL_to_mgL(realised_conc_molL, M)
+
         u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
 
-        # Elemental breakdown
+        # Elemental breakdowns
         atoms = getattr(f, "atoms", None)
         if isinstance(atoms, int) or atoms is None:
             if hasattr(f, "composition"):
@@ -189,92 +157,21 @@ for i in range(int(n_solutes)):
             else:
                 raise TypeError(f"Cannot extract element breakdown from {type(f)}")
 
-        element_breakdown = {}
+        element_breakdown_target = {}
+        element_breakdown_realised = {}
         for el_key, comp_item in atoms.items():
             sym = getattr(el_key, "symbol", el_key if isinstance(el_key, str) else str(el_key))
-            el_mass = getattr(el_key, "mass", None)
-            if el_mass is None:
-                el_mass = Formula(sym).mass
+            el_mass = getattr(el_key, "mass", None) or Formula(sym).mass
             count_val = getattr(comp_item, "count", comp_item)
             frac_mass = (el_mass * count_val) / M
-            elem_conc_mgL = conc_mgL_val * frac_mass
 
-            element_mgL[sym] += elem_conc_mgL
-            element_breakdown[sym] = elem_conc_mgL
+            elem_conc_target = conc_mgL_val * frac_mass
+            elem_conc_realised = realised_conc_mgL * frac_mass
+
+            element_mgL_target[sym] += elem_conc_target
+            element_mgL_realised[sym] += elem_conc_realised
+
+            element_breakdown_target[sym] = elem_conc_target
+            element_breakdown_realised[sym] = elem_conc_realised
 
         results.append({
-            "formula": raw_formula,  # keep original with '*' if present
-            "M": M,
-            "conc_molL": conc_molL,
-            "conc_mgL": conc_mgL_val,
-            "m_req": m_req,
-            "u_c": u_c,
-            "elements": element_breakdown
-        })
-# ---------- Output ----------
-if results:
-    if element_mgL:
-        st.markdown("### 💡 Element concentrations in solution (mg/L)")
-        df_elements = pd.DataFrame(
-            sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
-            columns=["Element", "Concentration (mg/L)"]
-        )
-        df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
-        st.dataframe(df_elements, use_container_width=True)
-
-    st.subheader("Component‑wise Results")
-    for r in results:
-        st.markdown(f"**{r['formula']}**")
-        st.write(f"- Molar mass: {r['M']:.5f} g/mol")
-        st.write(f"- Required mass: {r['m_req']:.5f} g")
-        st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
-        st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
-
-        if r["elements"]:
-            st.write("  **Elemental breakdown (mg/L):**")
-            for elem, val in r["elements"].items():
-                st.write(f"    - {elem}: {val:.3f}")
-
-if results:
-    # Flatten results into rows
-    table_rows = []
-    for r in results:
-        for elem, val in r["elements"].items():
-            table_rows.append({
-                "Formula": r["formula"],
-                "Molar mass (g/mol)": r["M"],
-                "Required mass (g)": r["m_req"],
-                "Target conc (mol/L)": r["conc_molL"],
-                "Target conc (mg/L)": r["conc_mgL"],
-                "Uncertainty (mol/L)": r["u_c"],
-                "Element": elem,
-                "Element conc (mg/L)": val
-            })
-
-    df_all = pd.DataFrame(table_rows)
-
-    # Preview table
-    st.markdown("### 📊 Component‑wise Results Preview")
-    st.dataframe(df_all.style.format({
-        "Molar mass (g/mol)": "{:.5f}",
-        "Required mass (g)": "{:.5f}",
-        "Target conc (mol/L)": "{:.6f}",
-        "Target conc (mg/L)": "{:.3f}",
-        "Uncertainty (mol/L)": "± {:.6f}",
-        "Element conc (mg/L)": "{:.3f}"
-    }), use_container_width=True)
-
-    # Export to Excel
-    from io import BytesIO
-    import openpyxl  # make sure this is installed
-
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df_all.to_excel(writer, index=False, sheet_name="Results")
-
-    st.download_button(
-        label="💾 Download results as Excel",
-        data=output.getvalue(),
-        file_name="solution_results.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
