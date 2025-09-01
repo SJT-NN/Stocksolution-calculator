@@ -34,7 +34,7 @@ def safe_sheet_name(name, max_len=31):
     # Replace * with .
     name = name.replace("*", ".")
     # Trim to Excel's max length
-    return name[:max_len
+    return name[:max_len]
 
 # ---------- UI ----------
 st.set_page_config(page_title="Multi‑Solute Solution Prep", page_icon="🧪")
