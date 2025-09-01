@@ -234,12 +234,12 @@ if results:
 
     st.markdown(f"**{r['formula']}**")
     st.table(df_solute)
-        if r["elements_target"]:
-            st.write("  **Elemental breakdown (mg/L):**")
-            for elem in r["elements_target"]:
-                tval = r["elements_target"][elem]
-                rval = r["elements_realised"][elem]
-                st.write(f"    - {elem}: target {tval:.6f}, realised {rval:.6f}")
+    if r["elements_target"]:
+        st.write("  **Elemental breakdown (mg/L):**")
+        for elem in r["elements_target"]:
+            tval = r["elements_target"][elem]
+            rval = r["elements_realised"][elem]
+            st.write(f"    - {elem}: target {tval:.6f}, realised {rval:.6f}")
 
     # Flatten results into rows for export/preview
     table_rows = []
