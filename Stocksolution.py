@@ -56,7 +56,8 @@ for i in range(int(n_solutes)):
     u_mass_g = parse_float(st.text_input(f"Scale uncertainty [g] for solute {i+1}", "0.001"))
 
     if formula and conc_val > 0:
-        M = Formula(formula).mass
+        f = Formula(formula)
+        M = f.mass
         conc_molL = conc_val if conc_unit == "mol/L" else mgL_to_molL(conc_val, M)
         conc_mgL_val = molL_to_mgL(conc_molL, M)
         purity = purity_pct / 100.0
@@ -66,15 +67,21 @@ for i in range(int(n_solutes)):
 
         # --- Elemental contributions for this solute ---
         element_breakdown = {}
-        try:
-            atoms = Formula(formula).atoms
-            for sym, count in atoms.items():
-                frac_mass = (Formula(sym).mass * count) / M
-                elem_conc_mgL = conc_mgL_val * frac_mass
-                element_mgL[sym] += elem_conc_mgL  # total across all solutes
-                element_breakdown[sym] = elem_conc_mgL  # store for this solute
-        except Exception:
-            pass
+        atoms = f.atoms  # keys may be strings or element objects
+
+        for el_key, count in atoms.items():
+            # Normalize to symbol string
+            sym = getattr(el_key, "symbol", el_key if isinstance(el_key, str) else str(el_key))
+            # Get atomic mass
+            el_mass = getattr(el_key, "mass", None)
+            if el_mass is None:
+                el_mass = Formula(sym).mass
+            # Calculate contribution
+            frac_mass = (el_mass * count) / M
+            elem_conc_mgL = conc_mgL_val * frac_mass
+
+            element_mgL[sym] += elem_conc_mgL
+            element_breakdown[sym] = elem_conc_mgL
 
         # --- Store compound-level results + element breakdown ---
         results.append({
@@ -84,10 +91,21 @@ for i in range(int(n_solutes)):
             "conc_mgL": conc_mgL_val,
             "m_req": m_req,
             "u_c": u_c,
-            "elements": element_breakdown  # NEW
+            "elements": element_breakdown
         })
 
+
 # ---------- Output ----------
+if results:
+    # Elemental table
+    if element_mgL:
+        st.markdown("### 💡 Element concentrations in solution (mg/L)")
+        df_elements = pd.DataFrame(
+            sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
+            columns=["Element", "Concentration (mg/L)"]
+        )
+        df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
+        st.dataframe(df_elements, use_container_width=True)
 
     # Component-wise details
     st.subheader("Component‑wise Results")
@@ -102,4 +120,3 @@ for i in range(int(n_solutes)):
             st.write("  **Elemental breakdown (mg/L):**")
             for elem, val in r["elements"].items():
                 st.write(f"    - {elem}: {val:.3f}")
-
