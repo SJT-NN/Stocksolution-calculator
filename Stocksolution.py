@@ -64,7 +64,7 @@ standard_solutions = [
                 "u_mass_g": 0.001
             },
             {
-                "formula": "CaCl2·2H2O",
+                "formula": "CaCl2*2H2O",
                 "conc_val": 0.05,         # mol/L
                 "conc_unit": "mol/L",
                 "purity_pct": 98,
@@ -77,7 +77,7 @@ standard_solutions = [
         "name": "Trace element mix",
         "components": [
             {
-                "formula": "FeSO4·7H2O",
+                "formula": "FeSO4*7H2O",
                 "conc_val": 10,
                 "conc_unit": "mg/L",
                 "purity_pct": 99,
@@ -85,7 +85,7 @@ standard_solutions = [
                 "u_mass_g": 0.001
             },
             {
-                "formula": "ZnSO4·7H2O",
+                "formula": "ZnSO4*7H2O",
                 "conc_val": 5,
                 "conc_unit": "mg/L",
                 "purity_pct": 99,
