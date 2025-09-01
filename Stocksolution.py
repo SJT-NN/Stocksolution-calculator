@@ -265,40 +265,39 @@ df_summary = pd.DataFrame([
 st.dataframe(df_summary, use_container_width=True)
 
 # Flatten results into rows for export/preview
-    table_rows = []
-    for r in results:
-        for elem in r["elements_target"]:
-            table_rows.append({
-                "Formula": raw_formula,
-                "Molar mass (g/mol)": M,
-                "Target conc (mol/L)": conc_molL,
-                "Target conc (mg/L)": conc_mgL_val,
-                "Mass required (g)": m_req,
-                "Uncertainty target (mol/L)": u_c,
-                "Actual mass (g)": actual_mass_g,
-                "Realised conc (mol/L)": realised_conc_molL,
-                "Realised conc (mg/L)": realised_conc_mgL,
-                "Uncertainty realised (mol/L)": u_c_realised})
+table_rows = []
+for r in results:
+   for elem in r["elements_target"]:
+        table_rows.append({
+            "Formula": raw_formula,
+            "Molar mass (g/mol)": M,
+            "Target conc (mol/L)": conc_molL,
+            "Target conc (mg/L)": conc_mgL_val,
+            "Mass required (g)": m_req,
+            "Uncertainty target (mol/L)": u_c,
+            "Actual mass (g)": actual_mass_g,
+            "Realised conc (mol/L)": realised_conc_molL,
+            "Realised conc (mg/L)": realised_conc_mgL,
+            "Uncertainty realised (mol/L)": u_c_realised})
             
-    df_all = pd.DataFrame(table_rows)
+df_all = pd.DataFrame(table_rows)
 
-    # Preview table
-    st.markdown("### 📊 Component‑wise Results Preview")
-    st.dataframe(
-        df_all.style.format({
-            "Molar mass (g/mol)": "{:.6f}",
-            "Target mass (g)": "{:.6f}",
-            "Actual mass (g)": "{:.6f}",
-            "Target conc (mol/L)": "{:.6f}",
-            "Actual conc (mol/L)": "{:.6f}",
-            "Target conc (mg/L)": "{:.6f}",
-            "Actual conc (mg/L)": "{:.6f}",
-            "Uncertainty (mol/L)": "± {:.6f}",
-            "Element conc target (mg/L)": "{:.6f}",
-            "Element conc realised (mg/L)": "{:.6f}"
+# Preview table
+st.markdown("### 📊 Component‑wise Results Preview")
+st.dataframe(
+    df_all.style.format({
+        "Molar mass (g/mol)": "{:.6f}",
+        "Target mass (g)": "{:.6f}",
+        "Actual mass (g)": "{:.6f}",
+        "Target conc (mol/L)": "{:.6f}",
+        "Actual conc (mol/L)": "{:.6f}",
+        "Target conc (mg/L)": "{:.6f}",
+        "Actual conc (mg/L)": "{:.6f}",
+        "Uncertainty (mol/L)": "± {:.6f}",
+        "Element conc target (mg/L)": "{:.6f}",
+        "Element conc realised (mg/L)": "{:.6f}"
         }),
-        use_container_width=True
-    )
+        use_container_width=True)
 
 # Ensure dicts exist to avoid .keys() errors
 element_mgL_target = element_mgL_target if isinstance(element_mgL_target, dict) else {}
