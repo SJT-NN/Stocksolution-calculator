@@ -68,10 +68,10 @@ standard_solutions = [
     {
         "name": "Q26xx",
         "components": [
-            {"formula": "NaCl", "conc_val": 16.48982*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005},
-            {"formula": "NaBr", "conc_val": 5.796375*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005},
-            {"formula": "LiOH*H2O", "conc_val": 9.06946*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005},
-            {"formula": "H3BO3", "conc_val": 5.72034*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
+            {"formula": "NaCl", "conc_val": 16.48982*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005},
+            {"formula": "NaBr", "conc_val": 5.796375*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005},
+            {"formula": "LiOH*H2O", "conc_val": 9.06946*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005},
+            {"formula": "H3BO3", "conc_val": 5.72034*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005}
         ]
     },
     {
@@ -257,16 +257,16 @@ if results:
     st.markdown("### 📊 Component‑wise Results Preview")
     st.dataframe(
         df_all.style.format({
-            "Molar mass (g/mol)": "{:.5f}",
-            "Target mass (g)": "{:.5f}",
-            "Actual mass (g)": "{:.5f}",
+            "Molar mass (g/mol)": "{:.6f}",
+            "Target mass (g)": "{:.6f}",
+            "Actual mass (g)": "{:.6f}",
             "Target conc (mol/L)": "{:.6f}",
             "Actual conc (mol/L)": "{:.6f}",
-            "Target conc (mg/L)": "{:.3f}",
-            "Actual conc (mg/L)": "{:.3f}",
+            "Target conc (mg/L)": "{:.6f}",
+            "Actual conc (mg/L)": "{:.6f}",
             "Uncertainty (mol/L)": "± {:.6f}",
-            "Element conc target (mg/L)": "{:.3f}",
-            "Element conc realised (mg/L)": "{:.3f}"
+            "Element conc target (mg/L)": "{:.6f}",
+            "Element conc realised (mg/L)": "{:.6f}"
         }),
         use_container_width=True
     )
