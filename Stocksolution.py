@@ -64,6 +64,16 @@ for i in range(int(n_solutes)):
         m_req = mass_required_molar(M, conc_molL, vol_L, purity)
         u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
 
+                # Elemental contributions from compound mg/L × mass fraction
+        try:
+            atoms = Formula(formula).atoms
+            for sym, count in atoms.items():
+                frac_mass = (Formula(sym).mass * count) / M
+                element_mgL[sym] += conc_mgL_val * frac_mass
+        except Exception:
+            pass
+
+
         # Store compound-level results
         results.append({
             "formula": formula,
@@ -74,14 +84,6 @@ for i in range(int(n_solutes)):
             "u_c": u_c
         })
 
-        # Elemental contributions from compound mg/L × mass fraction
-        try:
-            atoms = Formula(formula).atoms
-            for sym, count in atoms.items():
-                frac_mass = (Formula(sym).mass * count) / M
-                element_mgL[sym] += conc_mgL_val * frac_mass
-        except Exception:
-            pass
 
 # ---------- Output ----------
 if results:
