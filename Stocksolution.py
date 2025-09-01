@@ -226,7 +226,8 @@ if results:
         st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
         st.write(f"- Realised concentration: {r['realised_conc_molL']:.6f} mol/L  ({r['realised_conc_mgL']:.3f} mg/L)")
         st.write(f"- Uncertainty in concentration (target): ± {r['u_c']:.6f} mol/L")
-
+        st.write(f"- Uncertainty in concentration (realised): ± {r['u_c_realised']:.6f} mol/L")
+        
         if r["elements_target"]:
             st.write("  **Elemental breakdown (mg/L):**")
             for elem in r["elements_target"]:
@@ -247,7 +248,8 @@ if results:
                 "Actual conc (mol/L)": r["realised_conc_molL"],
                 "Target conc (mg/L)": r["conc_mgL"],
                 "Actual conc (mg/L)": r["realised_conc_mgL"],
-                "Uncertainty (mol/L)": r["u_c"],
+                "Uncertainty (target)(mol/L)": r["u_c"],
+                "Uncertainty (realised) (mol/L)": r["u_c_realised"],
                 "Element": elem,
                 "Element conc target (mg/L)": r["elements_target"][elem],
                 "Element conc realised (mg/L)": r["elements_realised"][elem]
