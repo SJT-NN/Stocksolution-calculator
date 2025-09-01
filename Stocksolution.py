@@ -263,10 +263,7 @@ df_summary = pd.DataFrame([
     for r in results
 ])
 
-st.dataframe(df_summary, use_container_width=True
-
 st.dataframe(df_summary, use_container_width=True)
-
 # Flatten results into rows for export/preview
 table_rows = []
 for r in results:
