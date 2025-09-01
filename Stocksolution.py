@@ -217,24 +217,25 @@ if results:
             st.dataframe(df_elements_realised, use_container_width=True)
 
     # Component-wise details
-    st.subheader("Component‑wise Results")
-    for r in results:
-        # Table 1: Parameters for this solute
-        df_solute = pd.DataFrame([
-            ["Molar mass (g/mol)", f"{r['M']:.5f}"],
-            ["Target mass (g)", f"{r['m_req']:.5f}"],
-            ["Actual mass (g)", f"{r['actual_mass_g']:.5f}"],
-            ["Target conc (mol/L)", f"{r['conc_molL']:.5f}"],
-            ["Target conc (mg/L)", f"{r['conc_mgL']:.5f}"],
-            ["Realised conc (mol/L)", f"{r['realised_conc_molL']:.5f}"],
-            ["Realised conc (mg/L)", f"{r['realised_conc_mgL']:.5f}"],
-            ["Uncertainty target (mol/L)", f"± {r['u_c']:.5f}"],
-            ["Uncertainty realised (mol/L)", f"± {r['u_c_realised']:.5f}"]
-        ], columns=["Parameter", "Value"])
+   st.subheader("Component‑wise Results")
+
+for r in results:
+    # Table 1: Parameters for this solute
+    df_solute = pd.DataFrame([
+        ["Molar mass (g/mol)", f"{r['M']:.5f}"],
+        ["Target mass (g)", f"{r['m_req']:.5f}"],
+        ["Actual mass (g)", f"{r['actual_mass_g']:.5f}"],
+        ["Target conc (mol/L)", f"{r['conc_molL']:.6f}"],
+        ["Target conc (mg/L)", f"{r['conc_mgL']:.3f}"],
+        ["Realised conc (mol/L)", f"{r['realised_conc_molL']:.6f}"],
+        ["Realised conc (mg/L)", f"{r['realised_conc_mgL']:.3f}"],
+        ["Uncertainty target (mol/L)", f"± {r['u_c']:.6f}"],
+        ["Uncertainty realised (mol/L)", f"± {r['u_c_realised']:.6f}"]
+    ], columns=["Parameter", "Value"])
 
     st.markdown(f"**{r['formula']}**")
     st.table(df_solute)
-    
+
     # Table 2: Elemental breakdown
     df_elements = pd.DataFrame([
         [elem, f"{r['elements_target'][elem]:.3f}", f"{r['elements_realised'][elem]:.3f}"]
@@ -261,6 +262,8 @@ df_summary = pd.DataFrame([
     }
     for r in results
 ])
+
+st.dataframe(df_summary, use_container_width=True
 
 st.dataframe(df_summary, use_container_width=True)
 
