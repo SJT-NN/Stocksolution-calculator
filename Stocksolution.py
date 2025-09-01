@@ -41,10 +41,10 @@ u_vol_value = parse_float(st.text_input("Volume uncertainty", "0.001"))
 u_vol_unit = st.selectbox("Uncertainty volume unit", ["L", "mL"], index=0)
 u_vol_L = u_vol_value / 1000.0 if u_vol_unit == "mL" else u_vol_value
 
-# ---------- Forward Mode Only ----------
+# ---------- Solute Inputs ----------
 n_solutes = st.number_input("Number of solutes", min_value=1, value=2, step=1)
 results = []
-element_mgL = defaultdict(float)
+element_mgL_total = defaultdict(float)
 
 for i in range(int(n_solutes)):
     st.markdown(f"### Solute {i+1}")
@@ -62,41 +62,43 @@ for i in range(int(n_solutes)):
         u_purity = u_purity_pct / 100.0
         m_req = mass_required_molar(M, conc_molL, vol_L, purity)
         u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
+        conc_mgL_val = molL_to_mgL(conc_molL, M)
+
+        # --- NEW: Per-element breakdown for this solute ---
+        element_conc_mgL = {}
+        try:
+            atoms = Formula(formula).atoms
+            for sym, count in atoms.items():
+                M_elem = Formula(sym).mass
+                frac = (count * M_elem) / M
+                elem_mgL = conc_mgL_val * frac
+                element_conc_mgL[sym] = elem_mgL
+                element_mgL_total[sym] += elem_mgL
+        except Exception:
+            pass
 
         results.append({
             "formula": formula,
             "M": M,
             "conc_molL": conc_molL,
-            "conc_mgL": molL_to_mgL(conc_molL, M),
+            "conc_mgL": conc_mgL_val,
             "m_req": m_req,
-            "u_c": u_c
+            "u_c": u_c,
+            "element_conc_mgL": element_conc_mgL
         })
-
-        # Elemental contributions (total)
-        try:
-            comp = Formula(formula.strip()).composition()
-            for elem, count, *rest in comp:
-                try:
-                    count_val = float(count)
-                except (ValueError, TypeError):
-                    continue
-                element_mgL[elem] += conc_molL * count_val * Formula(elem).mass * 1000.0
-        except Exception as e:
-            st.error(f"Could not calculate elemental breakdown for {formula}: {e}")
 
 # ---------- Output ----------
 if results:
-    if element_mgL:
-        st.markdown("### 💡 Total Element concentrations in solution (mg/L)")
+    if element_mgL_total:
+        st.markdown("### 💡 Total Element Concentrations in Solution (mg/L)")
         df_elements = pd.DataFrame(
-            sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
+            sorted(element_mgL_total.items(), key=lambda kv: kv[1], reverse=True),
             columns=["Element", "Concentration (mg/L)"]
         )
         df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
         st.dataframe(df_elements, use_container_width=True)
 
-    # Component‑wise details
-    st.subheader("Component‑wise Results")
+    st.subheader("🧾 Component‑wise Results")
     for r in results:
         st.markdown(f"**{r['formula']}**")
         st.write(f"- Molar mass: {r['M']:.5f} g/mol")
@@ -104,23 +106,11 @@ if results:
         st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
         st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
 
-        # Per‑solute elemental breakdown
-        try:
-            comp = Formula(r['formula'].strip()).composition()
-            per_solute_elements = {}
-            for sym, count, *rest in comp:
-                try:
-                    count_val = float(count)
-                except (ValueError, TypeError):
-                    continue
-                per_solute_elements[sym] = r['conc_molL'] * count_val * Formula(sym).mass * 1000.0
-
-            df_per_solute = pd.DataFrame(
-                sorted(per_solute_elements.items(), key=lambda kv: kv[1], reverse=True),
-                columns=["Element", "Concentration (mg/L)"]
+        # --- NEW: Display per-element breakdown as a mini-table ---
+        if r["element_conc_mgL"]:
+            df_elem = pd.DataFrame(
+                sorted(r["element_conc_mgL"].items(), key=lambda kv: kv[1], reverse=True),
+                columns=["Element", "Contribution (mg/L)"]
             )
-            df_per_solute["Concentration (mg/L)"] = df_per_solute["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
-            st.markdown("Elemental contribution from this solute:")
-            st.dataframe(df_per_solute, use_container_width=True)
-        except Exception as e:
-            st.error(f"Could not calculate elemental breakdown for {r['formula']}: {e}")
+            df_elem["Contribution (mg/L)"] = df_elem["Contribution (mg/L)"].map(lambda x: f"{x:.3f}")
+            st.dataframe(df_elem, use_container_width=True)
