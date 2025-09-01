@@ -148,6 +148,7 @@ for i in range(int(n_solutes)):
         realised_conc_mgL = molL_to_mgL(realised_conc_molL, M)
 
         u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
+        u_c_realised = conc_uncertainty_component(M, actual_mass_g, u_mass_g, vol_L, u_vol_L, purity, u_purity)
 
         # Elemental breakdowns
         atoms = getattr(f, "atoms", None)
@@ -184,6 +185,7 @@ for i in range(int(n_solutes)):
             "actual_mass_g": actual_mass_g,
             "realised_conc_molL": realised_conc_molL,
             "realised_conc_mgL": realised_conc_mgL,
+            "u_c_realised": u_c_realised,
             "elements_target": element_breakdown_target,
             "elements_realised": element_breakdown_realised
         })
