@@ -72,13 +72,14 @@ for i in range(int(n_solutes)):
             "u_c": u_c
         })
 
-        # Elemental contributions
+        # Elemental contributions (total)
         try:
-            atoms = Formula(formula).atoms
-            for sym, count in atoms.items():
-                element_mgL[sym] += conc_molL * count * Formula(sym).mass * 1000.0
-        except Exception:
-            pass
+            comp = Formula(formula).composition()
+            for elem, count, *rest in comp:  # works for 2‑tuple or 3‑tuple
+                count = float(count)
+                element_mgL[elem] += conc_molL * count * Formula(elem).mass * 1000.0
+        except Exception as e:
+            st.error(f"Could not calculate elemental breakdown for {formula}: {e}")
 
 # ---------- Output ----------
 if results:
@@ -91,7 +92,7 @@ if results:
         df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
         st.dataframe(df_elements, use_container_width=True)
 
-    # Keep component‑wise details below
+    # Component‑wise details
     st.subheader("Component‑wise Results")
     for r in results:
         st.markdown(f"**{r['formula']}**")
@@ -100,11 +101,12 @@ if results:
         st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
         st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
 
-        # Per-solute elemental breakdown
+        # Per‑solute elemental breakdown
         try:
-            atoms = Formula(r['formula']).atoms
+            comp = Formula(r['formula']).composition()
             per_solute_elements = {}
-            for sym, count in atoms.items():
+            for sym, count, *rest in comp:
+                count = float(count)
                 per_solute_elements[sym] = r['conc_molL'] * count * Formula(sym).mass * 1000.0
 
             df_per_solute = pd.DataFrame(
