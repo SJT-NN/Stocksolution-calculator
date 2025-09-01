@@ -50,43 +50,67 @@ mode = st.radio(
     index=0
 )
 
-# ---------- Premade solutions library ----------
+# ---------- Premade multi‑component solutions ----------
 standard_solutions = [
     {
-        "name": "0.1 M NaCl",
-        "formula": "NaCl",
-        "conc_val": 0.1,
-        "conc_unit": "mol/L",
-        "purity_pct": 100,
-        "u_purity_pct": 0.05,
-        "u_mass_g": 0.001
+        "name": "Soil nutrient mix",
+        "components": [
+            {
+                "formula": "KNO3",
+                "conc_val": 500,          # mg/L
+                "conc_unit": "mg/L",
+                "purity_pct": 99.5,
+                "u_purity_pct": 0.1,
+                "u_mass_g": 0.001
+            },
+            {
+                "formula": "CaCl2·2H2O",
+                "conc_val": 0.05,         # mol/L
+                "conc_unit": "mol/L",
+                "purity_pct": 98,
+                "u_purity_pct": 0.2,
+                "u_mass_g": 0.001
+            }
+        ]
     },
     {
-        "name": "1000 mg/L KNO3",
-        "formula": "KNO3",
-        "conc_val": 1000,
-        "conc_unit": "mg/L",
-        "purity_pct": 100,
-        "u_purity_pct": 0.1,
-        "u_mass_g": 0.001
+        "name": "Trace element mix",
+        "components": [
+            {
+                "formula": "FeSO4·7H2O",
+                "conc_val": 10,
+                "conc_unit": "mg/L",
+                "purity_pct": 99,
+                "u_purity_pct": 0.1,
+                "u_mass_g": 0.001
+            },
+            {
+                "formula": "ZnSO4·7H2O",
+                "conc_val": 5,
+                "conc_unit": "mg/L",
+                "purity_pct": 99,
+                "u_purity_pct": 0.1,
+                "u_mass_g": 0.001
+            }
+        ]
     }
 ]
 
-# If premade mode, pick one and set defaults
+# If premade mode, pick one and set defaults list
 if mode == "Premade standard solutions":
     choice = st.selectbox(
         "Choose a standard solution",
         [s["name"] for s in standard_solutions]
     )
-    defaults = next(s for s in standard_solutions if s["name"] == choice)
+    defaults_list = next(s for s in standard_solutions if s["name"] == choice)["components"]
 else:
-    defaults = {}
+    defaults_list = []
 
 # ---------- Number of solutes ----------
 n_solutes = st.number_input(
     "Number of solutes",
     min_value=1,
-    value=1 if defaults else 2,
+    value=len(defaults_list) if defaults_list else 2,
     step=1
 )
 
@@ -96,38 +120,19 @@ element_mgL = defaultdict(float)
 
 for i in range(int(n_solutes)):
     st.markdown(f"### Solute {i+1}")
+    defaults = defaults_list[i] if i < len(defaults_list) else {}
 
-    formula = st.text_input(
-        f"Formula {i+1}",
-        defaults.get("formula", "NaCl") if i == 0 else "NaCl",
-        key=f"f_{i}"
-    )
-    conc_val = parse_float(st.text_input(
-        f"Target conc {i+1}",
-        str(defaults.get("conc_val", 0.1)) if i == 0 else "0.1",
-        key=f"tc_{i}"
-    ))
+    formula = st.text_input(f"Formula {i+1}", defaults.get("formula", "NaCl"), key=f"f_{i}")
+    conc_val = parse_float(st.text_input(f"Target conc {i+1}", str(defaults.get("conc_val", 0.1)), key=f"tc_{i}"))
     conc_unit = st.selectbox(
         f"Concentration unit {i+1}",
         ["mol/L", "mg/L"],
-        index=(["mol/L", "mg/L"].index(defaults.get("conc_unit", "mol/L")) if i == 0 else 0),
+        index=(["mol/L", "mg/L"].index(defaults.get("conc_unit", "mol/L"))),
         key=f"cu_{i}"
     )
-    purity_pct = parse_float(st.text_input(
-        f"Purity [%] {i+1}",
-        str(defaults.get("purity_pct", 100)) if i == 0 else "100",
-        key=f"p_{i}"
-    ))
-    u_purity_pct = parse_float(st.text_input(
-        f"Purity uncertainty [%] {i+1}",
-        str(defaults.get("u_purity_pct", 0.05)) if i == 0 else "0.05",
-        key=f"up_{i}"
-    ))
-    u_mass_g = parse_float(st.text_input(
-        f"Scale uncertainty [g] for solute {i+1}",
-        str(defaults.get("u_mass_g", 0.001)) if i == 0 else "0.001",
-        key=f"um_{i}"
-    ))
+    purity_pct = parse_float(st.text_input(f"Purity [%] {i+1}", str(defaults.get("purity_pct", 100)), key=f"p_{i}"))
+    u_purity_pct = parse_float(st.text_input(f"Purity uncertainty [%] {i+1}", str(defaults.get("u_purity_pct", 0.05)), key=f"up_{i}"))
+    u_mass_g = parse_float(st.text_input(f"Scale uncertainty [g] for solute {i+1}", str(defaults.get("u_mass_g", 0.001)), key=f"um_{i}"))
 
     if formula and conc_val > 0:
         f = Formula(formula)
