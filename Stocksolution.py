@@ -72,13 +72,11 @@ for i in range(int(n_solutes)):
             "u_c": u_c
         })
 
-        # Elemental contributions
-        try:
-            atoms = Formula(formula).atoms
-            for sym, count in atoms.items():
-                element_mgL[sym] += conc_molL * count * Formula(sym).mass * 1000.0
-        except Exception:
-            pass
+        # ✅ Elemental contributions directly from molar concentration
+        atoms = Formula(formula).atoms
+        for sym, count in atoms.items():
+            atomic_mass = Formula(sym).mass  # g/mol
+            element_mgL[sym] += conc_molL * count * atomic_mass * 1000.0
 
 # ---------- Output ----------
 if results:
@@ -91,7 +89,7 @@ if results:
         df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
         st.dataframe(df_elements, use_container_width=True)
 
-    # Keep component‑wise details below
+    # Component‑wise details
     st.subheader("Component‑wise Results")
     for r in results:
         st.markdown(f"**{r['formula']}**")
