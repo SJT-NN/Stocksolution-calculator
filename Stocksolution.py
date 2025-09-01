@@ -56,32 +56,29 @@ for i in range(int(n_solutes)):
     u_mass_g = parse_float(st.text_input(f"Scale uncertainty [g] for solute {i+1}", "0.001"))
 
     if formula and conc_val > 0:
+        M = Formula(formula).mass
+        conc_molL = conc_val if conc_unit == "mol/L" else mgL_to_molL(conc_val, M)
+        purity = purity_pct / 100.0
+        u_purity = u_purity_pct / 100.0
+        m_req = mass_required_molar(M, conc_molL, vol_L, purity)
+        u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
+
+        results.append({
+            "formula": formula,
+            "M": M,
+            "conc_molL": conc_molL,
+            "conc_mgL": molL_to_mgL(conc_molL, M),
+            "m_req": m_req,
+            "u_c": u_c
+        })
+
+        # Elemental contributions
         try:
-            f = Formula(formula)
-            M = f.mass
-            conc_molL = conc_val if conc_unit == "mol/L" else mgL_to_molL(conc_val, M)
-            purity = purity_pct / 100.0
-            u_purity = u_purity_pct / 100.0
-            m_req = mass_required_molar(M, conc_molL, vol_L, purity)
-            u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
-
-            results.append({
-                "formula": formula,
-                "M": M,
-                "conc_molL": conc_molL,
-                "conc_mgL": molL_to_mgL(conc_molL, M),
-                "m_req": m_req,
-                "u_c": u_c
-            })
-
-            # ✅ Elemental contributions directly from molar concentration
-            atoms = f.atoms  # ensure it's a real dict
+            atoms = Formula(formula).atoms
             for sym, count in atoms.items():
-                atomic_mass = Formula(sym).mass  # g/mol
-                element_mgL[sym] += conc_molL * count * atomic_mass * 1000.0
-
-        except Exception as e:
-            st.warning(f"Could not parse formula '{formula}': {e}")
+                element_mgL[sym] += conc_molL * count * Formula(sym).mass * 1000.0
+        except Exception:
+            pass
 
 # ---------- Output ----------
 if results:
@@ -94,7 +91,7 @@ if results:
         df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
         st.dataframe(df_elements, use_container_width=True)
 
-    # Component‑wise details
+    # Keep component‑wise details below
     st.subheader("Component‑wise Results")
     for r in results:
         st.markdown(f"**{r['formula']}**")
