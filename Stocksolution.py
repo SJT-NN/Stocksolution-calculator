@@ -128,7 +128,7 @@ standard_solutions = [
             }
         ]
     },
-
+]
 
 # If premade mode, pick one and set defaults list
 if mode == "Premade standard solutions":
