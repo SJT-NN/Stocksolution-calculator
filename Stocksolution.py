@@ -75,10 +75,12 @@ for i in range(int(n_solutes)):
         # Elemental contributions
         try:
             atoms = Formula(formula).atoms
-            for sym, count in atoms.items():
-                element_mgL[sym] += conc_molL * count * Formula(sym).mass * 1000.0
-        except Exception:
-            pass
+        for sym, count in atoms.items():
+            # Fraction of the compound's mass that comes from this element
+            frac_mass = (Formula(sym).mass * count) / M
+            # Element mg/L = compound mg/L × fraction
+            element_mgL[sym] += molL_to_mgL(conc_molL, M) * frac_mass
+
 
 # ---------- Output ----------
 if results:
