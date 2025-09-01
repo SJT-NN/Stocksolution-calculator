@@ -52,7 +52,7 @@ for i in range(int(n_solutes)):
     formula = st.text_input(f"Formula {i+1}", "NaCl", key=f"f_{i}")
     conc_val = parse_float(st.text_input(f"Target conc {i+1}", "0.1"), 0.0)
     conc_unit = st.selectbox(f"Concentration unit {i+1}", ["mol/L", "mg/L"], key=f"cu_{i}")
-    purity_pct = parse_float(st.text_input(f"Purity [%] {i+1}", "99.5"))
+    purity_pct = parse_float(st.text_input(f"Purity [%] {i+1}", "100"))
     u_purity_pct = parse_float(st.text_input(f"Purity uncertainty [%] {i+1}", "0.05"))
     u_mass_g = parse_float(st.text_input(f"Scale uncertainty [g] for solute {i+1}", "0.001"))
 
