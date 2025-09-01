@@ -31,10 +31,10 @@ def conc_uncertainty_component(M, m_weighed, u_mass, vol_L, u_vol_L, purity, u_p
     return math.sqrt((dc_dm * u_mass)**2 + (dc_dV * u_vol_L)**2 + (dc_dp * u_purity)**2)
 
 def safe_sheet_name(name, max_len=31):
-    # Remove invalid Excel characters: * ? / \ [ ] :
-    name = re.sub(r'[\*\?\/\\\[\]\:]', '.', name)
+    # Replace * with .
+    name = name.replace("*", ".")
     # Trim to Excel's max length
-    return name[:max_len]
+    return name[:max_len
 
 # ---------- UI ----------
 st.set_page_config(page_title="Multi‑Solute Solution Prep", page_icon="🧪")
