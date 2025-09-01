@@ -192,4 +192,59 @@ if results:
         df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
         st.dataframe(df_elements, use_container_width=True)
 
-    st.subheader("Component‑wise Results
+    st.subheader("Component‑wise Results")
+    for r in results:
+        st.markdown(f"**{r['formula']}**")
+        st.write(f"- Molar mass: {r['M']:.5f} g/mol")
+        st.write(f"- Required mass: {r['m_req']:.5f} g")
+        st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
+        st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
+
+        if r["elements"]:
+            st.write("  **Elemental breakdown (mg/L):**")
+            for elem, val in r["elements"].items():
+                st.write(f"    - {elem}: {val:.3f}")
+
+if results:
+    # Flatten results into rows
+    table_rows = []
+    for r in results:
+        for elem, val in r["elements"].items():
+            table_rows.append({
+                "Formula": r["formula"],
+                "Molar mass (g/mol)": r["M"],
+                "Required mass (g)": r["m_req"],
+                "Target conc (mol/L)": r["conc_molL"],
+                "Target conc (mg/L)": r["conc_mgL"],
+                "Uncertainty (mol/L)": r["u_c"],
+                "Element": elem,
+                "Element conc (mg/L)": val
+            })
+
+    df_all = pd.DataFrame(table_rows)
+
+    # Preview table
+    st.markdown("### 📊 Component‑wise Results Preview")
+    st.dataframe(df_all.style.format({
+        "Molar mass (g/mol)": "{:.5f}",
+        "Required mass (g)": "{:.5f}",
+        "Target conc (mol/L)": "{:.6f}",
+        "Target conc (mg/L)": "{:.3f}",
+        "Uncertainty (mol/L)": "± {:.6f}",
+        "Element conc (mg/L)": "{:.3f}"
+    }), use_container_width=True)
+
+    # Export to Excel
+    from io import BytesIO
+    import openpyxl  # make sure this is installed
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df_all.to_excel(writer, index=False, sheet_name="Results")
+
+    st.download_button(
+        label="💾 Download results as Excel",
+        data=output.getvalue(),
+        file_name="solution_results.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
