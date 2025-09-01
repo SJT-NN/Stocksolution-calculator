@@ -30,6 +30,16 @@ def conc_uncertainty_component(M, m_weighed, u_mass, vol_L, u_vol_L, purity, u_p
     dc_dp = m_weighed / (M * vol_L)
     return math.sqrt((dc_dm * u_mass)**2 + (dc_dV * u_vol_L)**2 + (dc_dp * u_purity)**2)
 
+def safe_sheet_name(name, max_len=31):
+    # Remove invalid characters
+    name = re.sub(r'[\*\?\/\\
+
+\[\]
+
+\:]', '.', name)
+    # Trim to Excel's max length
+    return name[:max_len]
+
 # ---------- UI ----------
 st.set_page_config(page_title="Multi‑Solute Solution Prep", page_icon="🧪")
 st.title("🧪 Multi‑Component Solution Preparation")
@@ -332,6 +342,7 @@ with pd.ExcelWriter(output, engine="openpyxl") as writer:
 
         # Write both tables to the same sheet, one below the other
         sheet_name = f"Solute {idx} - {r['formula']}"
+        sheet_name = safe_sheet_name(f"Solute {idx} - {r['formula']}")
         df_solute.to_excel(writer, index=False, sheet_name=sheet_name, startrow=0)
         df_elements.to_excel(writer, index=False, sheet_name=sheet_name, startrow=len(df_solute) + 2)
 
