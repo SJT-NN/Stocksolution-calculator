@@ -4,3 +4,4 @@ numpy
 rich
 molmass
 pandas
+openpyxl
