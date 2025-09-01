@@ -58,32 +58,34 @@ for i in range(int(n_solutes)):
     if formula and conc_val > 0:
         M = Formula(formula).mass
         conc_molL = conc_val if conc_unit == "mol/L" else mgL_to_molL(conc_val, M)
+        conc_mgL_val = molL_to_mgL(conc_molL, M)
         purity = purity_pct / 100.0
         u_purity = u_purity_pct / 100.0
         m_req = mass_required_molar(M, conc_molL, vol_L, purity)
         u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
 
+        # Store compound-level results
         results.append({
             "formula": formula,
             "M": M,
             "conc_molL": conc_molL,
-            "conc_mgL": molL_to_mgL(conc_molL, M),
+            "conc_mgL": conc_mgL_val,
             "m_req": m_req,
             "u_c": u_c
         })
 
-        # Elemental contributions
+        # Elemental contributions from compound mg/L × mass fraction
         try:
             atoms = Formula(formula).atoms
             for sym, count in atoms.items():
-                # Fraction of the compound's mass that comes from this element
                 frac_mass = (Formula(sym).mass * count) / M
-                # Element mg/L = compound mg/L × fraction
-                element_mgL[sym] += molL_to_mgL(conc_molL, M) * frac_mass
-
+                element_mgL[sym] += conc_mgL_val * frac_mass
+        except Exception:
+            pass
 
 # ---------- Output ----------
 if results:
+    # Elemental table
     if element_mgL:
         st.markdown("### 💡 Element concentrations in solution (mg/L)")
         df_elements = pd.DataFrame(
@@ -93,7 +95,7 @@ if results:
         df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
         st.dataframe(df_elements, use_container_width=True)
 
-    # Keep component‑wise details below
+    # Component-wise details
     st.subheader("Component‑wise Results")
     for r in results:
         st.markdown(f"**{r['formula']}**")
@@ -101,3 +103,4 @@ if results:
         st.write(f"- Required mass: {r['m_req']:.5f} g")
         st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
         st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
+
