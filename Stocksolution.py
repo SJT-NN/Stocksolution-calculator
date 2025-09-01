@@ -67,8 +67,6 @@ for i in range(int(n_solutes)):
 
         # --- Robust elemental breakdown ---
         atoms = getattr(f, "atoms", None)
-
-        # If .atoms is an int or None, try .composition()
         if isinstance(atoms, int) or atoms is None:
             if hasattr(f, "composition"):
                 atoms = f.composition()
@@ -76,15 +74,17 @@ for i in range(int(n_solutes)):
                 raise TypeError(f"Cannot extract element breakdown from {type(f)}")
 
         element_breakdown = {}
-        for el_key, count in atoms.items():
+        for el_key, comp_item in atoms.items():
             # Normalize to symbol string
             sym = getattr(el_key, "symbol", el_key if isinstance(el_key, str) else str(el_key))
             # Get atomic mass
             el_mass = getattr(el_key, "mass", None)
             if el_mass is None:
                 el_mass = Formula(sym).mass
+            # Extract numeric count from CompositionItem or use directly if numeric
+            count_val = getattr(comp_item, "count", comp_item)
             # Calculate mg/L contribution
-            frac_mass = (el_mass * count) / M
+            frac_mass = (el_mass * count_val) / M
             elem_conc_mgL = conc_mgL_val * frac_mass
 
             element_mgL[sym] += elem_conc_mgL
@@ -123,5 +123,4 @@ if results:
         if r["elements"]:
             st.write("  **Elemental breakdown (mg/L):**")
             for elem, val in r["elements"].items():
-                st.write(f"    - {elem}: {val:.3f}")
                 st.write(f"    - {elem}: {val:.3f}")
