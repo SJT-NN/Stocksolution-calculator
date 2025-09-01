@@ -74,10 +74,13 @@ for i in range(int(n_solutes)):
 
         # Elemental contributions (total)
         try:
-            comp = Formula(formula).composition()
-            for elem, count, *rest in comp:  # works for 2‑tuple or 3‑tuple
-                count = float(count)
-                element_mgL[elem] += conc_molL * count * Formula(elem).mass * 1000.0
+            comp = Formula(formula.strip()).composition()
+            for elem, count, *rest in comp:
+                try:
+                    count_val = float(count)
+                except (ValueError, TypeError):
+                    continue
+                element_mgL[elem] += conc_molL * count_val * Formula(elem).mass * 1000.0
         except Exception as e:
             st.error(f"Could not calculate elemental breakdown for {formula}: {e}")
 
@@ -103,11 +106,14 @@ if results:
 
         # Per‑solute elemental breakdown
         try:
-            comp = Formula(r['formula']).composition()
+            comp = Formula(r['formula'].strip()).composition()
             per_solute_elements = {}
             for sym, count, *rest in comp:
-                count = float(count)
-                per_solute_elements[sym] = r['conc_molL'] * count * Formula(sym).mass * 1000.0
+                try:
+                    count_val = float(count)
+                except (ValueError, TypeError):
+                    continue
+                per_solute_elements[sym] = r['conc_molL'] * count_val * Formula(sym).mass * 1000.0
 
             df_per_solute = pd.DataFrame(
                 sorted(per_solute_elements.items(), key=lambda kv: kv[1], reverse=True),
