@@ -64,44 +64,38 @@ for i in range(int(n_solutes)):
         u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
 
         results.append({
-            "Formula": formula,
-            "Molar mass (g/mol)": M,
-            "Required mass (g)": m_req,
-            "Target conc (mol/L)": conc_molL,
-            "Target conc (mg/L)": molL_to_mgL(conc_molL, M),
-            "Conc uncertainty (mol/L)": u_c
+            "formula": formula,
+            "M": M,
+            "conc_molL": conc_molL,
+            "conc_mgL": molL_to_mgL(conc_molL, M),
+            "m_req": m_req,
+            "u_c": u_c
         })
 
-        # Elemental contributions from molecular conc
+        # Elemental contributions
         try:
             atoms = Formula(formula).atoms
             for sym, count in atoms.items():
-                atomic_mass = Formula(sym).mass
-                element_mgL[sym] += conc_molL * count * atomic_mass * 1000.0
-        except Exception as e:
-            st.warning(f"Could not parse elements for {formula}: {e}")
+                element_mgL[sym] += conc_molL * count * Formula(sym).mass * 1000.0
+        except Exception:
+            pass
 
 # ---------- Output ----------
 if results:
-    # Per‑solute DataFrame
-    df_solutes = pd.DataFrame(results)
-    df_solutes = df_solutes.round({
-        "Molar mass (g/mol)": 5,
-        "Required mass (g)": 5,
-        "Target conc (mol/L)": 6,
-        "Target conc (mg/L)": 3,
-        "Conc uncertainty (mol/L)": 6
-    })
+    if element_mgL:
+        st.markdown("### 💡 Element concentrations in solution (mg/L)")
+        df_elements = pd.DataFrame(
+            sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
+            columns=["Element", "Concentration (mg/L)"]
+        )
+        df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
+        st.dataframe(df_elements, use_container_width=True)
 
-    # Per‑element DataFrame
-    df_elements = pd.DataFrame(
-        sorted(element_mgL.items(), key=lambda kv: kv[1], reverse=True),
-        columns=["Element", "Conc (mg/L)"]
-    )
-    df_elements["Conc (mg/L)"] = df_elements["Conc (mg/L)"].round(3)
-
+    # Keep component‑wise details below
     st.subheader("Component‑wise Results")
-    st.dataframe(df_solutes, use_container_width=True)
-
-    st.subheader("💡 Element concentrations in solution")
-    st.dataframe(df_elements, use_container_width=True)
+    for r in results:
+        st.markdown(f"**{r['formula']}**")
+        st.write(f"- Molar mass: {r['M']:.5f} g/mol")
+        st.write(f"- Required mass: {r['m_req']:.5f} g")
+        st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
+        st.write(f"- Uncertainty in concentration: ± {r['u_c']:.6f} mol/L")
