@@ -70,7 +70,7 @@ standard_solutions = [
         "components": [
             {
                 "formula": "NaCl",
-                "conc_val": 16.48982,
+                "conc_val": 16.48982*1000,
                 "conc_unit": "mg/L",
                 "purity_pct": 100,
                 "u_purity_pct": 0.0,
@@ -78,7 +78,7 @@ standard_solutions = [
             },
             {
                 "formula": "NaBr",
-                "conc_val": 5.796375,
+                "conc_val": 5.796375*1000,
                 "conc_unit": "mg/L",
                 "purity_pct": 100,
                 "u_purity_pct": 0.0,
@@ -86,7 +86,7 @@ standard_solutions = [
             },
             {
                 "formula": "LiOH*H2O",
-                "conc_val": 9.06946,
+                "conc_val": 9.06946*1000,
                 "conc_unit": "mg/L",
                 "purity_pct": 100,
                 "u_purity_pct": 0.0,
@@ -94,7 +94,7 @@ standard_solutions = [
             },
             {
                 "formula": "H3BO3",
-                "conc_val": 5.72034,
+                "conc_val": 5.72034*1000,
                 "conc_unit": "mg/L",
                 "purity_pct": 100,
                 "u_purity_pct": 0.0,
