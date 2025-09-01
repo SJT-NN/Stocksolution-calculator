@@ -264,7 +264,7 @@ df_summary = pd.DataFrame([
 
 st.dataframe(df_summary, use_container_width=True)
 
-    # Flatten results into rows for export/preview
+# Flatten results into rows for export/preview
     table_rows = []
     for r in results:
         for elem in r["elements_target"]:
