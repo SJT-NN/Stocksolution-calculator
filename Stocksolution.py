@@ -175,3 +175,118 @@ for i in range(int(n_solutes)):
             element_breakdown_realised[sym] = elem_conc_realised
 
         results.append({
+            "formula": raw_formula,  # keep original with '*' if present
+            "M": M,
+            "conc_molL": conc_molL,
+            "conc_mgL": conc_mgL_val,
+            "m_req": m_req,
+            "u_c": u_c,
+            "actual_mass_g": actual_mass_g,
+            "realised_conc_molL": realised_conc_molL,
+            "realised_conc_mgL": realised_conc_mgL,
+            "elements_target": element_breakdown_target,
+            "elements_realised": element_breakdown_realised
+        })
+
+# ---------- Output ----------
+if results:
+    # Element totals across all solutes
+    if element_mgL_target:
+        st.markdown("### 💡 Element concentrations in solution (mg/L)")
+        col1, col2 = st.columns(2)
+
+        df_elements_target = pd.DataFrame(
+            sorted(element_mgL_target.items(), key=lambda kv: kv[1], reverse=True),
+            columns=["Element", "Target conc (mg/L)"]
+        )
+        df_elements_target["Target conc (mg/L)"] = df_elements_target["Target conc (mg/L)"].map(lambda x: f"{x:.3f}")
+
+        df_elements_realised = pd.DataFrame(
+            sorted(element_mgL_realised.items(), key=lambda kv: kv[1], reverse=True),
+            columns=["Element", "Realised conc (mg/L)"]
+        )
+        df_elements_realised["Realised conc (mg/L)"] = df_elements_realised["Realised conc (mg/L)"].map(lambda x: f"{x:.3f}")
+
+        with col1:
+            st.caption("Target")
+            st.dataframe(df_elements_target, use_container_width=True)
+        with col2:
+            st.caption("Realised")
+            st.dataframe(df_elements_realised, use_container_width=True)
+
+    # Component-wise details
+    st.subheader("Component‑wise Results")
+    for r in results:
+        st.markdown(f"**{r['formula']}**")
+        st.write(f"- Molar mass: {r['M']:.5f} g/mol")
+        st.write(f"- Target mass: {r['m_req']:.5f} g")
+        st.write(f"- Actual mass: {r['actual_mass_g']:.5f} g")
+        st.write(f"- Target concentration: {r['conc_molL']:.6f} mol/L  ({r['conc_mgL']:.3f} mg/L)")
+        st.write(f"- Realised concentration: {r['realised_conc_molL']:.6f} mol/L  ({r['realised_conc_mgL']:.3f} mg/L)")
+        st.write(f"- Uncertainty in concentration (target): ± {r['u_c']:.6f} mol/L")
+
+        if r["elements_target"]:
+            st.write("  **Elemental breakdown (mg/L):**")
+            for elem in r["elements_target"]:
+                tval = r["elements_target"][elem]
+                rval = r["elements_realised"][elem]
+                st.write(f"    - {elem}: target {tval:.3f}, realised {rval:.3f}")
+
+    # Flatten results into rows for export/preview
+    table_rows = []
+    for r in results:
+        for elem in r["elements_target"]:
+            table_rows.append({
+                "Formula": r["formula"],
+                "Molar mass (g/mol)": r["M"],
+                "Target mass (g)": r["m_req"],
+                "Actual mass (g)": r["actual_mass_g"],
+                "Target conc (mol/L)": r["conc_molL"],
+                "Actual conc (mol/L)": r["realised_conc_molL"],
+                "Target conc (mg/L)": r["conc_mgL"],
+                "Actual conc (mg/L)": r["realised_conc_mgL"],
+                "Uncertainty (mol/L)": r["u_c"],
+                "Element": elem,
+                "Element conc target (mg/L)": r["elements_target"][elem],
+                "Element conc realised (mg/L)": r["elements_realised"][elem]
+            })
+
+    df_all = pd.DataFrame(table_rows)
+
+    # Preview table
+    st.markdown("### 📊 Component‑wise Results Preview")
+    st.dataframe(
+        df_all.style.format({
+            "Molar mass (g/mol)": "{:.5f}",
+            "Target mass (g)": "{:.5f}",
+            "Actual mass (g)": "{:.5f}",
+            "Target conc (mol/L)": "{:.6f}",
+            "Actual conc (mol/L)": "{:.6f}",
+            "Target conc (mg/L)": "{:.3f}",
+            "Actual conc (mg/L)": "{:.3f}",
+            "Uncertainty (mol/L)": "± {:.6f}",
+            "Element conc target (mg/L)": "{:.3f}",
+            "Element conc realised (mg/L)": "{:.3f}"
+        }),
+        use_container_width=True
+    )
+
+    # Export to Excel
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df_all.to_excel(writer, index=False, sheet_name="Results")
+        # Optional: add element totals sheet
+        df_totals = pd.DataFrame({
+            "Element": list(sorted(set(list(element_mgL_target.keys()) | set(element_mgL_realised.keys())))),
+        })
+        df_totals["Target conc (mg/L)"] = df_totals["Element"].map(lambda e: element_mgL_target.get(e, 0.0))
+        df_totals["Realised conc (mg/L)"] = df_totals["Element"].map(lambda e: element_mgL_realised.get(e, 0.0))
+        df_totals = df_totals.sort_values("Realised conc (mg/L)", ascending=False)
+        df_totals.to_excel(writer, index=False, sheet_name="Element Totals")
+
+    st.download_button(
+        label="💾 Download results as Excel",
+        data=output.getvalue(),
+        file_name="solution_results.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    
