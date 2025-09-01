@@ -53,48 +53,82 @@ mode = st.radio(
 # ---------- Premade multi‑component solutions ----------
 standard_solutions = [
     {
-        "name": "Soil nutrient mix",
+        "name": "V3000",
         "components": [
             {
-                "formula": "KNO3",
-                "conc_val": 500,          # mg/L
-                "conc_unit": "mg/L",
-                "purity_pct": 99.5,
-                "u_purity_pct": 0.1,
-                "u_mass_g": 0.001
-            },
-            {
-                "formula": "CaCl2*2H2O",
-                "conc_val": 0.05,         # mol/L
+                "formula": "NaCl",
+                "conc_val": 0.1000,          # M
                 "conc_unit": "mol/L",
-                "purity_pct": 98,
-                "u_purity_pct": 0.2,
-                "u_mass_g": 0.001
+                "purity_pct": 1000,
+                "u_purity_pct": 0.0,
+                "u_mass_g": 0.0005
             }
         ]
     },
     {
-        "name": "Trace element mix",
+        "name": "Q26xx",
         "components": [
             {
-                "formula": "FeSO4*7H2O",
-                "conc_val": 10,
+                "formula": "NaCl",
+                "conc_val": 16.48982,
                 "conc_unit": "mg/L",
-                "purity_pct": 99,
-                "u_purity_pct": 0.1,
-                "u_mass_g": 0.001
+                "purity_pct": 100,
+                "u_purity_pct": 0.0,
+                "u_mass_g": 0.0005
             },
             {
-                "formula": "ZnSO4*7H2O",
-                "conc_val": 5,
+                "formula": "NaBr",
+                "conc_val": 5.796375,
                 "conc_unit": "mg/L",
-                "purity_pct": 99,
-                "u_purity_pct": 0.1,
-                "u_mass_g": 0.001
-            }
+                "purity_pct": 100,
+                "u_purity_pct": 0.0,
+                "u_mass_g": 0.0005
+            },
+            {
+                "formula": "LiOH*H2O",
+                "conc_val": 9.06946,
+                "conc_unit": "mg/L",
+                "purity_pct": 100,
+                "u_purity_pct": 0.0,
+                "u_mass_g": 0.0005
+            },
+            {
+                "formula": "H3BO3",
+                "conc_val": 5.72034,
+                "conc_unit": "mg/L",
+                "purity_pct": 100,
+                "u_purity_pct": 0.0,
+                "u_mass_g": 0.0005
+            },
         ]
     }
-]
+    {
+        "name": "Q31xx",
+        "components": [
+            {
+                "formula": "NaH2PO4",
+                "conc_val": 25270,
+                "conc_unit": "mg/L",
+                "purity_pct": 100,
+                "u_purity_pct": 0.0,
+                "u_mass_g": 0.0005
+            }
+        ]
+    },
+    {
+        "name": "Q35xx",
+        "components": [
+            {
+                "formula": "NH4Cl",
+                "conc_val": 114570,
+                "conc_unit": "mg/L",
+                "purity_pct": 100,
+                "u_purity_pct": 0.0,
+                "u_mass_g": 0.0005
+            }
+        ]
+    },
+
 
 # If premade mode, pick one and set defaults list
 if mode == "Premade standard solutions":
