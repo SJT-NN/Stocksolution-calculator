@@ -59,7 +59,7 @@ standard_solutions = [
                 "formula": "NaCl",
                 "conc_val": 0.1000,          # M
                 "conc_unit": "mol/L",
-                "purity_pct": 1000,
+                "purity_pct": 100,           # corrected from 1000
                 "u_purity_pct": 0.0,
                 "u_mass_g": 0.0005
             }
@@ -99,9 +99,9 @@ standard_solutions = [
                 "purity_pct": 100,
                 "u_purity_pct": 0.0,
                 "u_mass_g": 0.0005
-            },
+            }
         ]
-    }
+    },
     {
         "name": "Q31xx",
         "components": [
@@ -127,7 +127,7 @@ standard_solutions = [
                 "u_mass_g": 0.0005
             }
         ]
-    },
+    }
 ]
 
 # If premade mode, pick one and set defaults list
