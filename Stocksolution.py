@@ -65,10 +65,17 @@ for i in range(int(n_solutes)):
         m_req = mass_required_molar(M, conc_molL, vol_L, purity)
         u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
 
-        # --- Elemental contributions for this solute ---
-        element_breakdown = {}
-        atoms = f.atoms  # keys may be strings or element objects
+        # --- Robust elemental breakdown ---
+        atoms = getattr(f, "atoms", None)
 
+        # If .atoms is an int or None, try .composition()
+        if isinstance(atoms, int) or atoms is None:
+            if hasattr(f, "composition"):
+                atoms = f.composition()
+            else:
+                raise TypeError(f"Cannot extract element breakdown from {type(f)}")
+
+        element_breakdown = {}
         for el_key, count in atoms.items():
             # Normalize to symbol string
             sym = getattr(el_key, "symbol", el_key if isinstance(el_key, str) else str(el_key))
@@ -76,7 +83,7 @@ for i in range(int(n_solutes)):
             el_mass = getattr(el_key, "mass", None)
             if el_mass is None:
                 el_mass = Formula(sym).mass
-            # Calculate contribution
+            # Calculate mg/L contribution
             frac_mass = (el_mass * count) / M
             elem_conc_mgL = conc_mgL_val * frac_mass
 
@@ -94,10 +101,8 @@ for i in range(int(n_solutes)):
             "elements": element_breakdown
         })
 
-
 # ---------- Output ----------
 if results:
-    # Elemental table
     if element_mgL:
         st.markdown("### 💡 Element concentrations in solution (mg/L)")
         df_elements = pd.DataFrame(
@@ -107,7 +112,6 @@ if results:
         df_elements["Concentration (mg/L)"] = df_elements["Concentration (mg/L)"].map(lambda x: f"{x:.3f}")
         st.dataframe(df_elements, use_container_width=True)
 
-    # Component-wise details
     st.subheader("Component‑wise Results")
     for r in results:
         st.markdown(f"**{r['formula']}**")
@@ -119,4 +123,5 @@ if results:
         if r["elements"]:
             st.write("  **Elemental breakdown (mg/L):**")
             for elem, val in r["elements"].items():
+                st.write(f"    - {elem}: {val:.3f}")
                 st.write(f"    - {elem}: {val:.3f}")
