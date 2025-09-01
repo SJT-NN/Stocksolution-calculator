@@ -217,7 +217,7 @@ if results:
             st.dataframe(df_elements_realised, use_container_width=True)
 
     # Component-wise details
-   st.subheader("Component‑wise Results")
+st.subheader("Component‑wise Results")
 
 for r in results:
     # Table 1: Parameters for this solute
