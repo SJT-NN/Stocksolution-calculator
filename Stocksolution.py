@@ -234,12 +234,35 @@ if results:
 
     st.markdown(f"**{r['formula']}**")
     st.table(df_solute)
-    if r["elements_target"]:
-        st.write("  **Elemental breakdown (mg/L):**")
-        for elem in r["elements_target"]:
-            tval = r["elements_target"][elem]
-            rval = r["elements_realised"][elem]
-            st.write(f"    - {elem}: target {tval:.6f}, realised {rval:.6f}")
+    
+    # Table 2: Elemental breakdown
+    df_elements = pd.DataFrame([
+        [elem, f"{r['elements_target'][elem]:.3f}", f"{r['elements_realised'][elem]:.3f}"]
+        for elem in r["elements_target"]
+    ], columns=["Element", "Target (mg/L)", "Realised (mg/L)"])
+    st.caption("Elemental breakdown")
+    st.table(df_elements)
+
+# --- Combined summary table ---
+st.subheader("Summary Table")
+
+df_summary = pd.DataFrame([
+    {
+        "Formula": r["formula"],
+        "Molar mass (g/mol)": f"{r['M']:.5f}",
+        "Target mass (g)": f"{r['m_req']:.5f}",
+        "Actual mass (g)": f"{r['actual_mass_g']:.5f}",
+        "Target conc (mol/L)": f"{r['conc_molL']:.6f}",
+        "Target conc (mg/L)": f"{r['conc_mgL']:.3f}",
+        "Realised conc (mol/L)": f"{r['realised_conc_molL']:.6f}",
+        "Realised conc (mg/L)": f"{r['realised_conc_mgL']:.3f}",
+        "Uncertainty target (mol/L)": f"± {r['u_c']:.6f}",
+        "Uncertainty realised (mol/L)": f"± {r['u_c_realised']:.6f}"
+    }
+    for r in results
+])
+
+st.dataframe(df_summary, use_container_width=True)
 
     # Flatten results into rows for export/preview
     table_rows = []
