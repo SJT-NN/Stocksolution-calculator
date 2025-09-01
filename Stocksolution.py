@@ -4,6 +4,7 @@ import streamlit as st
 from molmass import Formula
 from collections import defaultdict
 import pandas as pd
+from openpyxl import load_workbook
 
 # ---------- Helpers ----------
 def parse_float(x, default=0.0):
