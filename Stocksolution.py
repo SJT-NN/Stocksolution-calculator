@@ -289,4 +289,5 @@ if results:
         data=output.getvalue(),
         file_name="solution_results.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
     
