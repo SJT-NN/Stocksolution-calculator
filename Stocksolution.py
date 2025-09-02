@@ -37,12 +37,12 @@ def safe_sheet_name(name, max_len=31):
     return name[:max_len]
 
 # ---------- UI ----------
-st.set_page_config(page_title="Multi‑Solute Solution Prep", page_icon="🧪")
-st.title("🧪 Multi‑Component Solution Preparation")
+st.set_page_config(page_title="Stock solution prep helper", page_icon="🧪")
+st.title("🧪 Stock solution helper")
 
 # Volume input
 # ---------- Solution size input ----------
-prep_mode = st.radio("Select preparation mode:",["By volume", "By mass"],index=0)
+prep_mode = st.radio("Volumetric or gravimetric:",["By volume", "By mass"],index=0)
 
 if prep_mode == "By volume":
     vol_value = parse_float(st.text_input("Solution volume", "1.0"))
@@ -346,17 +346,17 @@ with pd.ExcelWriter(output, engine="openpyxl") as writer:
             ["Molar mass (g/mol)", f"{r['M']:.5f}"],
             ["Target mass (g)", f"{r['m_req']:.5f}"],
             ["Actual mass (g)", f"{r['actual_mass_g']:.5f}"],
-            ["Target conc (mol/L)", f"{r['conc_molL']:.6f}"],
-            ["Target conc (mg/L)", f"{r['conc_mgL']:.3f}"],
-            ["Realised conc (mol/L)", f"{r['realised_conc_molL']:.6f}"],
-            ["Realised conc (mg/L)", f"{r['realised_conc_mgL']:.3f}"],
-            ["Uncertainty target (mol/L)", f"± {r['u_c']:.6f}"],
-            ["Uncertainty realised (mol/L)", f"± {r['u_c_realised']:.6f}"]
+            ["Target conc (mol/L)", f"{r['conc_molL']:.5f}"],
+            ["Target conc (mg/L)", f"{r['conc_mgL']:.5f}"],
+            ["Realised conc (mol/L)", f"{r['realised_conc_molL']:.5f}"],
+            ["Realised conc (mg/L)", f"{r['realised_conc_mgL']:.5f}"],
+            ["Uncertainty target (mol/L)", f"± {r['u_c']:.5f}"],
+            ["Uncertainty realised (mol/L)", f"± {r['u_c_realised']:.5f}"]
         ], columns=["Parameter", "Value"])
 
         # Elemental breakdown
         df_elements = pd.DataFrame([
-            [elem, f"{r['elements_target'][elem]:.3f}", f"{r['elements_realised'][elem]:.3f}"]
+            [elem, f"{r['elements_target'][elem]:.5f}", f"{r['elements_realised'][elem]:.5f}"]
             for elem in r["elements_target"]
         ], columns=["Element", "Target (mg/L)", "Realised (mg/L)"])
 
