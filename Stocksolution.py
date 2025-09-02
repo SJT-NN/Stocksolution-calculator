@@ -41,13 +41,37 @@ st.set_page_config(page_title="Multi‑Solute Solution Prep", page_icon="🧪")
 st.title("🧪 Multi‑Component Solution Preparation")
 
 # Volume input
-vol_value = parse_float(st.text_input("Solution volume", "1.0"))
-vol_unit = st.selectbox("Volume unit", ["L", "mL"], index=0)
-vol_L = vol_value / 1000.0 if vol_unit == "mL" else vol_value
+# ---------- Solution size input ----------
+prep_mode = st.radio("Select preparation mode:",["By volume", "By mass"],index=0)
 
-u_vol_value = parse_float(st.text_input("Volume uncertainty", "0.001"))
-u_vol_unit = st.selectbox("Uncertainty volume unit", ["L", "mL"], index=0)
-u_vol_L = u_vol_value / 1000.0 if u_vol_unit == "mL" else u_vol_value
+if prep_mode == "By volume":
+    vol_value = parse_float(st.text_input("Solution volume", "1.0"))
+    vol_unit = st.selectbox("Volume unit", ["L", "mL"], index=0)
+    vol_L = vol_value / 1000.0 if vol_unit == "mL" else vol_value
+
+    u_vol_value = parse_float(st.text_input("Volume uncertainty", "0.001"))
+    u_vol_unit = st.selectbox("Uncertainty volume unit", ["L", "mL"], index=0)
+    u_vol_L = u_vol_value / 1000.0 if u_vol_unit == "mL" else u_vol_value
+
+elif prep_mode == "By mass":
+    mass_value = parse_float(st.text_input("Solution mass", "1000.0"))  # g
+    mass_unit = st.selectbox("Mass unit", ["g", "kg"], index=0)
+    mass_g = mass_value * (1000.0 if mass_unit == "kg" else 1.0)
+
+    u_mass_value = parse_float(st.text_input("Scale uncertainty", "0.1"))  # g
+    u_mass_g = u_mass_value * (1000.0 if mass_unit == "kg" else 1.0)
+
+    density_value = parse_float(st.text_input("Solution density", "1.000"))  # g/mL
+    u_density_value = parse_float(st.text_input("Density uncertainty", "0.001"))  # g/mL
+
+    # Convert to volume in litres
+    vol_L = (mass_g / density_value) / 1000.0
+
+    # Propagate uncertainty in volume from mass and density uncertainties
+    u_vol_L = math.sqrt(
+        ((1.0 / density_value) * u_mass_g)**2 +
+        ((-mass_g / (density_value**2)) * u_density_value)**2
+    ) / 1000.0
 
 # ---------- Mode selector ----------
 mode = st.radio(
