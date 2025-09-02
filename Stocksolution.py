@@ -58,7 +58,8 @@ elif prep_mode == "By mass":
     mass_unit = st.selectbox("Mass unit", ["g", "kg"], index=0)
     mass_g = mass_value * (1000.0 if mass_unit == "kg" else 1.0)
 
-    u_mass_value = parse_float(st.text_input("Scale uncertainty", "0.1"))  # g
+    u_mass_value = parse_float(st.text_input("Scale uncertainty", "10"))  # g
+    u_mass_unit = st.selectbox("Scale uncertainty unit", ["g", "kg"], index=0)
     u_mass_g = u_mass_value * (1000.0 if mass_unit == "kg" else 1.0)
 
     density_value = parse_float(st.text_input("Solution density", "1.000"))  # g/mL
