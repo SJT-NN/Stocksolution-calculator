@@ -149,90 +149,71 @@ results = []
 element_mgL_target = defaultdict(float)
 element_mgL_realised = defaultdict(float)
 
-if mode == "Manual entry":
-    # Let user decide how many solutes
-    n_solutes = st.number_input(
-        "Number of solutes",
-        min_value=1,
-        value=2,
-        step=1
-    )
-    solute_range = range(int(n_solutes))
-
-elif mode == "Premade standard solutions":
-    # Use exactly the number of components in the chosen premade
-    n_solutes = len(defaults_list)
-    solute_range = range(n_solutes)
-
-# ---------- Data processing ----------
-for i in solute_range:
+for i in range(int(n_solutes)):
     st.markdown(f"### Solute {i+1}")
-    defaults = defaults_list[i] if (mode == "Premade standard solutions") else {}
+    defaults = defaults_list[i] if i < len(defaults_list) else {}
 
-    raw_formula = st.text_input(
-        f"Formula {i+1}",
-        defaults.get("formula", "NaCl"),
-        key=f"f_{i}"
-    )
+    raw_formula = st.text_input(f"Formula {i+1}", defaults.get("formula", "NaCl"), key=f"f_{i}")
     formula = raw_formula.replace("*", "")
 
-    conc_val = parse_float(st.text_input(
-        f"Target conc {i+1}",
-        str(defaults.get("conc_val", 0.1)),
-        key=f"tc_{i}"
-    ))
+    conc_val = parse_float(st.text_input(f"Target conc {i+1}", str(defaults.get("conc_val", 0.1)), key=f"tc_{i}"))
     conc_unit = st.selectbox(
         f"Concentration unit {i+1}",
         ["mol/L", "mg/L"],
         index=(["mol/L", "mg/L"].index(defaults.get("conc_unit", "mol/L"))),
         key=f"cu_{i}"
     )
-    purity_pct = parse_float(st.text_input(
-        f"Purity [%] {i+1}",
-        str(defaults.get("purity_pct", 100)),
-        key=f"p_{i}"
-    ))
-    u_purity_pct = parse_float(st.text_input(
-        f"Purity uncertainty [%] {i+1}",
-        str(defaults.get("u_purity_pct", 0.05)),
-        key=f"up_{i}"
-    ))
-    u_mass_g = parse_float(st.text_input(
-        f"Scale uncertainty [g] for solute {i+1}",
-        str(defaults.get("u_mass_g", 0.001)),
-        key=f"um_{i}"
-    ))
+    purity_pct = parse_float(st.text_input(f"Purity [%] {i+1}", str(defaults.get("purity_pct", 100)), key=f"p_{i}"))
+    u_purity_pct = parse_float(st.text_input(f"Purity uncertainty [%] {i+1}", str(defaults.get("u_purity_pct", 0.05)), key=f"up_{i}"))
+    u_mass_g = parse_float(st.text_input(f"Scale uncertainty [g] for solute {i+1}", str(defaults.get("u_mass_g", 0.001)), key=f"um_{i}"))
 
-    # ... rest of your calculation logic ...
+    if formula and conc_val > 0:
+        f = Formula(formula)
+        M = f.mass
+        conc_molL = conc_val if conc_unit == "mol/L" else mgL_to_molL(conc_val, M)
+        conc_mgL_val = molL_to_mgL(conc_molL, M)
+        purity = purity_pct / 100.0
+        u_purity = u_purity_pct / 100.0
+        m_req = mass_required_molar(M, conc_molL, vol_L, purity)
 
+        # NEW: Actual weighed mass input
+        actual_mass_g = parse_float(
+            st.text_input(f"Actual weighed mass [g] for solute {i+1}", f"{m_req:.5f}", key=f"am_{i}")
+        )
 
-    # Elemental breakdowns
-    atoms = getattr(f, "atoms", None)
-    if isinstance(atoms, int) or atoms is None:
-        if hasattr(f, "composition"):
-            atoms = f.composition()
-        else:
-            raise TypeError(f"Cannot extract element breakdown from {type(f)}")
-            
-    element_breakdown_target = {}
-    element_breakdown_realised = {}
-    for el_key, comp_item in atoms.items():
-        sym = getattr(el_key, "symbol", el_key if isinstance(el_key, str) else str(el_key))
-        el_mass = getattr(el_key, "mass", None) or Formula(sym).mass
-        count_val = getattr(comp_item, "count", comp_item)
-        frac_mass = (el_mass * count_val) / M
+        # Realised concentrations
+        realised_conc_molL = (actual_mass_g * purity) / (M * vol_L)
+        realised_conc_mgL = molL_to_mgL(realised_conc_molL, M)
 
-        
-        elem_conc_target = conc_mgL_val * frac_mass
-        elem_conc_realised = realised_conc_mgL * frac_mass
+        u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
+        u_c_realised = conc_uncertainty_component(M, actual_mass_g, u_mass_g, vol_L, u_vol_L, purity, u_purity)
 
-        element_mgL_target[sym] += elem_conc_target
-        element_mgL_realised[sym] += elem_conc_realised
+        # Elemental breakdowns
+        atoms = getattr(f, "atoms", None)
+        if isinstance(atoms, int) or atoms is None:
+            if hasattr(f, "composition"):
+                atoms = f.composition()
+            else:
+                raise TypeError(f"Cannot extract element breakdown from {type(f)}")
 
-        element_breakdown_target[sym] = elem_conc_target
-        element_breakdown_realised[sym] = elem_conc_realised
+        element_breakdown_target = {}
+        element_breakdown_realised = {}
+        for el_key, comp_item in atoms.items():
+            sym = getattr(el_key, "symbol", el_key if isinstance(el_key, str) else str(el_key))
+            el_mass = getattr(el_key, "mass", None) or Formula(sym).mass
+            count_val = getattr(comp_item, "count", comp_item)
+            frac_mass = (el_mass * count_val) / M
 
-    results.append({
+            elem_conc_target = conc_mgL_val * frac_mass
+            elem_conc_realised = realised_conc_mgL * frac_mass
+
+            element_mgL_target[sym] += elem_conc_target
+            element_mgL_realised[sym] += elem_conc_realised
+
+            element_breakdown_target[sym] = elem_conc_target
+            element_breakdown_realised[sym] = elem_conc_realised
+
+        results.append({
             "formula": raw_formula,  # keep original with '*' if present
             "M": M,
             "conc_molL": conc_molL,
