@@ -9,51 +9,40 @@ from openpyxl import load_workbook
 
 # ---------- Helpers ----------
 def parse_float(x, default=0.0):
-    """Safely parse a float with fallback."""
     try:
         return float(x)
     except ValueError:
         return default
 
-
 def mass_required_molar(M, conc_mol_L, vol_L, purity):
-    """Calculate required solute mass for target molarity."""
     pure_mass = M * conc_mol_L * vol_L
     return pure_mass / purity
-
 
 def mgL_to_molL(conc_mg_L, M):
     return conc_mg_L / 1000.0 / M
 
-
 def molL_to_mgL(conc_mol_L, M):
     return conc_mol_L * M * 1000.0
 
-
 def conc_uncertainty_component(M, m_weighed, u_mass, vol_L, u_vol_L, purity, u_purity):
-    """Propagate uncertainty in concentration."""
     dc_dm = purity / (M * vol_L)
     dc_dV = -(m_weighed * purity) / (M * vol_L**2)
     dc_dp = m_weighed / (M * vol_L)
-    return math.sqrt(
-        (dc_dm * u_mass) ** 2 +
-        (dc_dV * u_vol_L) ** 2 +
-        (dc_dp * u_purity) ** 2
-    )
-
+    return math.sqrt((dc_dm * u_mass)**2 + (dc_dV * u_vol_L)**2 + (dc_dp * u_purity)**2)
 
 def safe_sheet_name(name, max_len=31):
-    """Make Excel-safe sheet name."""
-    return name.replace("*", ".")[:max_len]
+    # Replace * with .
+    name = name.replace("*", ".")
+    # Trim to Excel's max length
+    return name[:max_len]
 
-
-# ---------- UI Setup ----------
+# ---------- UI ----------
 st.set_page_config(page_title="Stock solution prep helper", page_icon="🧪")
 st.title("🧪 Stock solution helper")
 
-
+# Volume input
 # ---------- Solution size input ----------
-prep_mode = st.radio("Volumetric or gravimetric:", ["By volume", "By mass"], index=0)
+prep_mode = st.radio("Volumetric or gravimetric:",["By volume", "By mass"],index=0)
 
 if prep_mode == "By volume":
     vol_value = parse_float(st.text_input("Solution volume", "1.0"))
@@ -64,14 +53,14 @@ if prep_mode == "By volume":
     u_vol_unit = st.selectbox("Uncertainty volume unit", ["L", "mL"], index=0)
     u_vol_L = u_vol_value / 1000.0 if u_vol_unit == "mL" else u_vol_value
 
-else:  # By mass
+elif prep_mode == "By mass":
     mass_value = parse_float(st.text_input("Solution mass", "1000.0"))  # g
     mass_unit = st.selectbox("Mass unit", ["g", "kg"], index=0)
     mass_g = mass_value * (1000.0 if mass_unit == "kg" else 1.0)
 
     u_mass_value = parse_float(st.text_input("Scale uncertainty", "10"))  # g
     u_mass_unit = st.selectbox("Scale uncertainty unit", ["g", "kg"], index=0)
-    u_mass_g = u_mass_value * (1000.0 if u_mass_unit == "kg" else 1.0)
+    u_mass_g = u_mass_value * (1000.0 if mass_unit == "kg" else 1.0)
 
     density_value = parse_float(st.text_input("Solution density", "1.000"))  # g/mL
     u_density_value = parse_float(st.text_input("Density uncertainty", "0.001"))  # g/mL
@@ -79,48 +68,82 @@ else:  # By mass
     # Convert to volume in litres
     vol_L = (mass_g / density_value) / 1000.0
 
-    # Propagate uncertainty in volume
+    # Propagate uncertainty in volume from mass and density uncertainties
     u_vol_L = math.sqrt(
-        ((1.0 / density_value) * u_mass_g) ** 2 +
-        ((-mass_g / (density_value ** 2)) * u_density_value) ** 2
+        ((1.0 / density_value) * u_mass_g)**2 +
+        ((-mass_g / (density_value**2)) * u_density_value)**2
     ) / 1000.0
 
-
 # ---------- Mode selector ----------
-mode = st.radio("Select input mode", ["Manual entry", "Premade standard solutions"], index=0)
+mode = st.radio(
+    "Select input mode",
+    ["Manual entry", "Premade standard solutions"],
+    index=0
+)
 
+# ---------- Premade multi‑component solutions ----------
 standard_solutions = [
-    {"name": "V3000", "components": [
-        {"formula": "NaCl", "conc_val": 0.1000, "conc_unit": "mol/L",
-         "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
-    ]},
-    {"name": "Q26xx", "components": [
-        {"formula": "NaCl", "conc_val": 16489.82, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005},
-        {"formula": "NaBr", "conc_val": 5796.375, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005},
-        {"formula": "LiOH*H2O", "conc_val": 9069.46, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005},
-        {"formula": "H3BO3", "conc_val": 5720.34, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005}
-    ]},
-    {"name": "Q31xx", "components": [
-        {"formula": "NaH2PO4", "conc_val": 25270, "conc_unit": "mg/L",
-         "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
-    ]},
-    {"name": "Q35xx", "components": [
-        {"formula": "NH4Cl", "conc_val": 114570, "conc_unit": "mg/L",
-         "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
-    ]},
-    {"name": "Q41xx (Remember 1.05 µL of 30% w/w HCl)", "components": [
-        {"formula": "LiCl", "conc_val": 1144432, "conc_unit": "mg/L",
-         "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005},
-        {"formula": "NaCl", "conc_val": 3791139, "conc_unit": "mg/L",
-         "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
-    ]}
+    {
+        "name": "V3000",
+        "components": [
+            {
+                "formula": "NaCl",
+                "conc_val": 0.1000,          # M
+                "conc_unit": "mol/L",
+                "purity_pct": 100,
+                "u_purity_pct": 0.0,
+                "u_mass_g": 0.0005
+            }
+        ]
+    },
+    {
+        "name": "Q26xx",
+        "components": [
+            {"formula": "NaCl", "conc_val": 16.48982*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005},
+            {"formula": "NaBr", "conc_val": 5.796375*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005},
+            {"formula": "LiOH*H2O", "conc_val": 9.06946*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005},
+            {"formula": "H3BO3", "conc_val": 5.72034*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005}
+        ]
+    },
+    {
+        "name": "Q31xx",
+        "components": [
+            {"formula": "NaH2PO4", "conc_val": 25270, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
+        ]
+    },
+    {
+        "name": "Q35xx",
+        "components": [
+            {"formula": "NH4Cl", "conc_val": 114570, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
+        ]
+    },
+    {
+        "name": "Q41xx (Remember 1.05 µL of 30% w/w HCl)",
+        "components": [
+            {"formula": "LiCl", "conc_val": 1144432, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005},
+            {"formula": "NaCl", "conc_val": 3791139, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
+        ]
+    }
 ]
 
-defaults_list = []
+# If premade mode, pick one and set defaults list
 if mode == "Premade standard solutions":
-    choice = st.selectbox("Choose a standard solution", [s["name"] for s in standard_solutions])
+    choice = st.selectbox(
+        "Choose a standard solution",
+        [s["name"] for s in standard_solutions]
+    )
     defaults_list = next(s for s in standard_solutions if s["name"] == choice)["components"]
-    
+else:
+    defaults_list = []
+
+# ---------- Number of solutes ----------
+n_solutes = st.number_input(
+    "Number of solutes",
+    min_value=1,
+    value=len(defaults_list) if defaults_list else 2,
+    step=1
+)
+
 # ---------- Data processing ----------
 results = []
 element_mgL_target = defaultdict(float)
