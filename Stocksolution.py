@@ -216,22 +216,23 @@ for i in solute_range:
             
     element_breakdown_target = {}
     element_breakdown_realised = {}
-        for el_key, comp_item in atoms.items():
-            sym = getattr(el_key, "symbol", el_key if isinstance(el_key, str) else str(el_key))
-            el_mass = getattr(el_key, "mass", None) or Formula(sym).mass
-            count_val = getattr(comp_item, "count", comp_item)
-            frac_mass = (el_mass * count_val) / M
+    for el_key, comp_item in atoms.items():
+        sym = getattr(el_key, "symbol", el_key if isinstance(el_key, str) else str(el_key))
+        el_mass = getattr(el_key, "mass", None) or Formula(sym).mass
+        count_val = getattr(comp_item, "count", comp_item)
+        frac_mass = (el_mass * count_val) / M
 
-            elem_conc_target = conc_mgL_val * frac_mass
-            elem_conc_realised = realised_conc_mgL * frac_mass
+        
+        elem_conc_target = conc_mgL_val * frac_mass
+        elem_conc_realised = realised_conc_mgL * frac_mass
 
-            element_mgL_target[sym] += elem_conc_target
-            element_mgL_realised[sym] += elem_conc_realised
+        element_mgL_target[sym] += elem_conc_target
+        element_mgL_realised[sym] += elem_conc_realised
 
-            element_breakdown_target[sym] = elem_conc_target
-            element_breakdown_realised[sym] = elem_conc_realised
+        element_breakdown_target[sym] = elem_conc_target
+        element_breakdown_realised[sym] = elem_conc_realised
 
-        results.append({
+    results.append({
             "formula": raw_formula,  # keep original with '*' if present
             "M": M,
             "conc_molL": conc_molL,
