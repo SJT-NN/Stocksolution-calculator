@@ -116,6 +116,13 @@ standard_solutions = [
         "components": [
             {"formula": "NH4Cl", "conc_val": 114570, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
         ]
+    },
+    {
+        "name": "Q41xx (Remember 1.05 µL of 30% w/w HCl)",
+        "components": [
+            {"formula": "LiCl", "conc_val": 1144432, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005},
+            {"formula": "NaCl", "conc_val": 3791139, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
+        ]
     }
 ]
 
