@@ -206,16 +206,16 @@ for i in solute_range:
     # ... rest of your calculation logic ...
 
 
-        # Elemental breakdowns
-        atoms = getattr(f, "atoms", None)
-        if isinstance(atoms, int) or atoms is None:
-            if hasattr(f, "composition"):
-                atoms = f.composition()
-            else:
-                raise TypeError(f"Cannot extract element breakdown from {type(f)}")
-
-        element_breakdown_target = {}
-        element_breakdown_realised = {}
+    # Elemental breakdowns
+    atoms = getattr(f, "atoms", None)
+    if isinstance(atoms, int) or atoms is None:
+        if hasattr(f, "composition"):
+            atoms = f.composition()
+        else:
+            raise TypeError(f"Cannot extract element breakdown from {type(f)}")
+            
+    element_breakdown_target = {}
+    element_breakdown_realised = {}
         for el_key, comp_item in atoms.items():
             sym = getattr(el_key, "symbol", el_key if isinstance(el_key, str) else str(el_key))
             el_mass = getattr(el_key, "mass", None) or Formula(sym).mass
