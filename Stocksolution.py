@@ -86,7 +86,7 @@ standard_solutions = [
     {
         "name": "V3000",
         "components": [
-             {"formula": "", "conc_val": , "conc_unit": "", "purity_pct":, "u_purity_pct": , "u_mass_g": },
+             {"formula": "", "conc_val": 0, "conc_unit": "", "purity_pct": 0, "u_purity_pct": 0, "u_mass_g": 0},
             {"formula": "NaCl", "conc_val": 0.1000, "conc_unit": "mol/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}]
     },
     {
