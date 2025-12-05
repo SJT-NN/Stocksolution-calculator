@@ -74,9 +74,6 @@ elif prep_mode == "By mass":
         ((-mass_g / (density_value**2)) * u_density_value)**2
     ) / 1000.0
 
-
-    defaults_list = []
-
 # ---------- Number of solutes ----------
 n_solutes = st.number_input(
     "Number of solutes",
