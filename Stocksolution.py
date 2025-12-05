@@ -170,7 +170,7 @@ for i in range(int(n_solutes)):
 if results:
     # --- Element totals across all solutes ---
     if element_mgL_target:
-        st.markdown("### 💡 Element concentrations in solution (mg/L)")
+        st.markdown("### Element concentrations in solution (mg/L)")
 
         # --- Build both DataFrames ---
         df_elements_target = pd.DataFrame(
