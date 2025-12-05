@@ -78,7 +78,7 @@ elif prep_mode == "By mass":
 n_solutes = st.number_input(
     "Number of solutes",
     min_value=1,
-    value=len(defaults_list) if defaults_list else 2,
+    value= 1,
     step=1
 )
 
