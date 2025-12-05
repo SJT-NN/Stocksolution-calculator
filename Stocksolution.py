@@ -89,7 +89,7 @@ element_mgL_realised = defaultdict(float)
 
 for i in range(int(n_solutes)):
     st.markdown(f"### Solute {i+1}")
-    defaults = defaults_list[i] if i < len(defaults_list) else {}
+    defaults = {}
 
     raw_formula = st.text_input(f"Formula {i+1}", defaults.get("formula", "NaCl"), key=f"f_{i}")
     formula = raw_formula.replace("*", "")
