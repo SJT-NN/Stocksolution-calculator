@@ -65,10 +65,10 @@ elif prep_mode == "By mass":
     density_value = parse_float(st.text_input("Solution density", "1.000"))  # g/mL
     u_density_value = parse_float(st.text_input("Density uncertainty", "0.001"))  # g/mL
 
-    # Convert to volume in litres
+    # --- Convert to volume in litres ---
     vol_L = (mass_g / density_value) / 1000.0
 
-    # Propagate uncertainty in volume from mass and density uncertainties
+    # --- Propagate uncertainty in volume from mass and density uncertainties ---
     u_vol_L = math.sqrt(
         ((1.0 / density_value) * u_mass_g)**2 +
         ((-mass_g / (density_value**2)) * u_density_value)**2
@@ -114,19 +114,19 @@ for i in range(int(n_solutes)):
         u_purity = u_purity_pct / 100.0
         m_req = mass_required_molar(M, conc_molL, vol_L, purity)
 
-        # NEW: Actual weighed mass input
+        # --- Actual weighed mass input ---
         actual_mass_g = parse_float(
             st.text_input(f"Actual weighed mass [g] for solute {i+1}", f"{m_req:.5f}", key=f"am_{i}")
         )
 
-        # Realised concentrations
+        # --- Realised concentrations ---
         realised_conc_molL = (actual_mass_g * purity) / (M * vol_L)
         realised_conc_mgL = molL_to_mgL(realised_conc_molL, M)
 
         u_c = conc_uncertainty_component(M, m_req, u_mass_g, vol_L, u_vol_L, purity, u_purity)
         u_c_realised = conc_uncertainty_component(M, actual_mass_g, u_mass_g, vol_L, u_vol_L, purity, u_purity)
 
-        # Elemental breakdowns
+        # --- Elemental breakdowns ---
         atoms = getattr(f, "atoms", None)
         if isinstance(atoms, int) or atoms is None:
             if hasattr(f, "composition"):
@@ -168,11 +168,11 @@ for i in range(int(n_solutes)):
 
 # ---------- Output ----------
 if results:
-    # Element totals across all solutes
+    # --- Element totals across all solutes ---
     if element_mgL_target:
         st.markdown("### 💡 Element concentrations in solution (mg/L)")
 
-        # Build both DataFrames
+        # --- Build both DataFrames ---
         df_elements_target = pd.DataFrame(
             sorted(element_mgL_target.items(), key=lambda kv: kv[0]),  # sort by element name
             columns=["Element", "Target conc (mg/L)"]
@@ -182,26 +182,26 @@ if results:
             columns=["Element", "Realised conc (mg/L)"]
         )
 
-        # Merge into one DataFrame on "Element"
+        # --- Merge into one DataFrame on "Element" ---
         df_elements = pd.merge(df_elements_target, df_elements_realised, on="Element", how="outer")
 
-        # Sort by Target conc (numeric) descending
+        # --- Sort by Target conc (numeric) descending ---
         df_elements = df_elements.sort_values(by="Target conc (mg/L)", ascending=False)
 
-        # Format numeric columns to 5 decimal places
+        # --- Format numeric columns to 5 decimal places ---
         for col in ["Target conc (mg/L)", "Realised conc (mg/L)"]:
             df_elements[col] = df_elements[col].map(lambda x: f"{x:.5f}")
 
-        # Show single table
+        # --- Show single table ---
         st.dataframe(df_elements, use_container_width=True)
 
        
 
-    # Component-wise details
+    # --- Component-wise details ---
 #st.subheader("Component‑wise Results")
 
 for r in results:
-    # Table 1: Parameters for this solute
+    # --- Table 1: Parameters for this solute ---
     df_solute = pd.DataFrame([
         ["Molar mass (g/mol)", f"{r['M']:.5f}"],
         ["Target mass (g)", f"{r['m_req']:.5f}"],
@@ -263,20 +263,20 @@ for r in results:
             
 df_all = pd.DataFrame(table_rows)
 
-# Ensure dicts exist to avoid .keys() errors
+# --- Ensure dicts exist to avoid .keys() errors ---
 element_mgL_target = element_mgL_target if isinstance(element_mgL_target, dict) else {}
 element_mgL_realised = element_mgL_realised if isinstance(element_mgL_realised, dict) else {}
 
-# Build main DataFrame with uncertainties
+# --- Build main DataFrame with uncertainties ---
 df_all = pd.DataFrame(table_rows)  # table_rows should now include u_c and u_c_realised
 
-# Export to Excel
+# --- Export to Excel ---
 output = BytesIO()
 with pd.ExcelWriter(output, engine="openpyxl") as writer:
-    # Main results sheet
+    # --- Main results sheet ---
     df_all.to_excel(writer, index=False, sheet_name="Results")
 
-    # Element totals sheet
+    # --- Element totals sheet ---
     elements = sorted(set(element_mgL_target.keys()) | set(element_mgL_realised.keys()))
     df_totals = pd.DataFrame({
         "Element": elements,
@@ -285,7 +285,7 @@ with pd.ExcelWriter(output, engine="openpyxl") as writer:
     }).sort_values("Realised conc (mg/L)", ascending=False)
     df_totals.to_excel(writer, index=False, sheet_name="Element Totals")
 
-    # One sheet per solute
+    # --- One sheet per solute ---
     for idx, r in enumerate(results, start=1):
         # Parameters for this solute
         df_solute = pd.DataFrame([
@@ -300,20 +300,20 @@ with pd.ExcelWriter(output, engine="openpyxl") as writer:
             ["Uncertainty realised (mol/L)", f"± {r['u_c_realised']:.5f}"]
         ], columns=["Parameter", "Value"])
 
-        # Elemental breakdown
+        # --- Elemental breakdown---
         df_elements = pd.DataFrame([
             [elem, f"{r['elements_target'][elem]:.5f}", f"{r['elements_realised'][elem]:.5f}"]
             for elem in r["elements_target"]
         ], columns=["Element", "Target (mg/L)", "Realised (mg/L)"])
 
-        # Write both tables to the same sheet, one below the other
+        # --- Write both tables to the same sheet, one below the other ---
         sheet_name = f"Solute {idx} - {r['formula']}"
         sheet_name = safe_sheet_name(f"Solute {idx} - {r['formula']}")
         df_solute.to_excel(writer, index=False, sheet_name=sheet_name, startrow=0)
         df_elements.to_excel(writer, index=False, sheet_name=sheet_name, startrow=len(df_solute) + 2)
 
 
-# Download button
+# ----- Download button -----
 st.download_button(
     label="💾 Download results as Excel",
     data=output.getvalue(),
