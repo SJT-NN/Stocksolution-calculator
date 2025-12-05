@@ -74,58 +74,7 @@ elif prep_mode == "By mass":
         ((-mass_g / (density_value**2)) * u_density_value)**2
     ) / 1000.0
 
-# ---------- Mode selector ----------
-mode = st.radio(
-    "Select input mode",
-    ["Manual entry", "Premade standard solutions"],
-    index=0
-)
 
-# ---------- Premade multi‑component solutions ----------
-standard_solutions = [
-    {
-        "name": "V3000",
-        "components": [
-            {"formula": "NaCl", "conc_val": 0.1000, "conc_unit": "mol/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}]
-    },
-    {
-        "name": "Q26xx",
-        "components": [
-            {"formula": "NaCl", "conc_val": 16.48982*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005},
-            {"formula": "NaBr", "conc_val": 5.796375*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005},
-            {"formula": "LiOH*H2O", "conc_val": 9.06946*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005},
-            {"formula": "H3BO3", "conc_val": 5.72034*1000, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.00005}
-        ]
-    },
-    {
-        "name": "Q31xx",
-        "components": [
-            {"formula": "NaH2PO4", "conc_val": 25270, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
-        ]
-    },
-    {
-        "name": "Q35xx",
-        "components": [
-            {"formula": "NH4Cl", "conc_val": 114570, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
-        ]
-    },
-    {
-        "name": "Q41xx (Remember 1.05 µL of 30% w/w HCl)",
-        "components": [
-            {"formula": "LiCl", "conc_val": 1144432, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005},
-            {"formula": "NaCl", "conc_val": 3791139, "conc_unit": "mg/L", "purity_pct": 100, "u_purity_pct": 0.0, "u_mass_g": 0.0005}
-        ]
-    }
-]
-
-# If premade mode, pick one and set defaults list
-if mode == "Premade standard solutions":
-    choice = st.selectbox(
-        "Choose a standard solution",
-        [s["name"] for s in standard_solutions]
-    )
-    defaults_list = next(s for s in standard_solutions if s["name"] == choice)["components"]
-else:
     defaults_list = []
 
 # ---------- Number of solutes ----------
